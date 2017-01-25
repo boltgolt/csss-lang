@@ -87,8 +87,6 @@ module.exports = {
 				// If the line is a function declaration
 				if (/(\w*?) \{/g.exec(line)) {
 					addFunctionToSack(/(\w*?) \{/g.exec(line)[1], lineNum + 1)
-					console.log(functionStack);
-
 					continue
 				}
 
@@ -97,20 +95,17 @@ module.exports = {
 				if (attrRegex) {
 					var func = getDeepestFunction()
 					func.attrs[attrRegex[1]] = parseVariable(attrRegex[2])
-
-					console.log("attr");
-					console.log(func);
-					console.log(functionStack);
+					continue
 				}
 
+				// When it's time to execute the function with the given attributes
 				if (line == "}") {
 					var func = getDeepestFunction()
 
+					// Call the function from the functions file
 					outputText = functions[func.name](func.attrs, outputText)
 				}
 			}
-
-
 
 			callback(outputText)
 		})
