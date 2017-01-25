@@ -24,6 +24,8 @@ send {
 }
 ```
 
+Variables can contain strings (in single and double quotes), integers and floats, and true/false.
+
 ### Variable operations
 
 To add strings together or to preform math on variables, use ```calc()```:
@@ -60,7 +62,7 @@ If/else blocks are modified media queries. They take both variables and static v
 
 ### Comments
 
-Comments are 100% the same as they are in CSS
+Comments are 100% the same as they are in CSS. Howver, they can not me multi-line.
 
 ```css
 /* I'm a comment! */
