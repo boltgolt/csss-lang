@@ -4,7 +4,7 @@ This document describes the easy to use server-side scripting language that is C
 
 ### Functions
 
-There is no way to define a function. It is possible to call predefined functions though. They probide us with the funtionality to handle HTTP requests.
+There is no way to define a function. It is possible to call predefined functions though. They provide us with the functionality to handle HTTP requests.
 
 ```css
 send {
@@ -14,7 +14,7 @@ send {
 
 ### Variables
 
-CSSS veriables work exactly as shitty as CSS ones. You declare them using the ```--var-name``` syntax and read them like ```var(--var-name)```. For example:
+CSSS variables work exactly as shitty as CSS ones. You declare them using the ```--var-name``` syntax and read them like ```var(--var-name)```. For example:
 
 ```css
 --my-name: "pete";
@@ -60,9 +60,19 @@ If/else blocks are modified media queries. They take both variables and static v
 }
 ```
 
+### While loop
+
+Much like the if/else blocks, while loops use at-rules.
+
+```css
+@while (true) {
+
+}
+```
+
 ### Comments
 
-Comments are 100% the same as they are in CSS. Howver, they can not me multi-line.
+Comments are 100% the same as they are in CSS.
 
 ```css
 /* I'm a comment! */

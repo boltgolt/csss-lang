@@ -1,5 +1,26 @@
-send {
-	content: "Oh hai";
+--my-dad: "steve";
+--his-age: 40;
+
+@if(var(--my-dad) == "morris") {
+	--his-age: 44;
+}
+
+--index: 8;
+
+@while(var(--index) > 4) {
+	--index: calc(var(--index) - 1);
+	--his-age: calc(var(--his-age) + 1);
+}
+
+@if(var(--his-age) > 20) {
+	send {
+		content: "He's old";
+	}
+}
+@else {
+	send {
+		content: calc('He\'s ' + var(--his-age));
+	}
 }
 
 /* I'm a comment */
