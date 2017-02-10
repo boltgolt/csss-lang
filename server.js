@@ -1,6 +1,8 @@
 var express = require("express")
 var fs = require("fs")
 var app = express()
+const util = require('util')
+
 
 var parser = require("./parser.js")
 
@@ -75,9 +77,12 @@ app.disable("x-powered-by")
 //
 
 var lexer = require("./interpreter/lexer.js")
+var syntact = require("./interpreter/syntact.js")
 
-console.log(lexer(`
-@if(var(--my-dad) == "morris") {
+console.log(util.inspect(
+    syntact(
+        lexer(`
+@if (var(--my-dad) == "morris") {
 	--his-age: 44;
 }
 
@@ -88,7 +93,7 @@ console.log(lexer(`
 	--his-age: calc(var(--his-age) + .1);
 }
 
-@if(var(--his-age) => 2.0) {
+@if(var(--his-age) > 2.0) {
 	send {
 		content: "He's old";
 	}
@@ -100,4 +105,7 @@ console.log(lexer(`
 }
 
 /* I'm a comment */
-`, "filename.csss"))
+`,
+        "filename.csss"),
+    "filename.csss")
+, {showHidden: false, depth: null}))

@@ -1,3 +1,4 @@
+// All allowed comparative operators
 var comparators = [
 	"==",
 	"!=",
@@ -7,6 +8,7 @@ var comparators = [
 	"<"
 ]
 
+// All allowed arithmetic operators
 var arithmetics = [
 	"+",
 	"-",
@@ -15,7 +17,13 @@ var arithmetics = [
 	"%"
 ]
 
+// The function call by the main server file
 module.exports = function(text, filename) {
+	/**
+	 * Add a token to the token array
+	 * @param  {String} type  The token type
+	 * @param  {String} value The value found in the input
+	 */
 	function pushToken(type, value) {
 		tokens.push({
 			type: type,
@@ -23,19 +31,30 @@ module.exports = function(text, filename) {
 		})
 	}
 
+	/**
+	 * Go to the next character
+	 * @return {String} The new character, also accesible by reading current
+	 */
 	function next() {
+		// If we've just passed a newline, increment the line number
 		if (current == "\n") {
 			line++
+			pushToken("line", line)
 		}
 
 		return current = text[++index]
 	}
 
+	// Array containing all generated tokens
 	var tokens = []
+	// Current char index
 	var index = 0
+	// Current file line number
 	var line = 1
+	// The currently active char
 	var current
 
+	// Loop though the whole file
 	while (index < text.length) {
 		current = text[index]
 
@@ -182,5 +201,6 @@ module.exports = function(text, filename) {
 		}
 	}
 
+	// Return the generated tokens to be handled further
 	return tokens
 }
