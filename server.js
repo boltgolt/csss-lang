@@ -1,48 +1,76 @@
+// Required packages
 var express = require("express")
+var colors = require("colors/safe")
 var fs = require("fs")
-var app = express()
+
+// Temp includes
 const util = require('util')
 
-
-var parser = require("./parser.js")
+// Init express app
+var app = express()
 
 var logLevel = 3
-var version = "0.0.0"
+var version = "0.0.1"
 
-global.parseError = function (errorLines) {
-    process.stdout.write("\x1b[41m\x1b[37m\x1b[1m                  CSSS PARSE ERROR                  \x1b[0m\n\n")
+/**
+ * Send a message to the console
+ * @param  {String} text The text to display
+ * @param  {String} type One of the log types/levels, see below
+ */
+global.log = function(text, type) {
+    // Get the current time and add a leading 0 when needed
+    var d = new Date()
+    var h = (d.getHours() < 10 ? "0" : "") + d.getHours()
+    var m = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes()
+    var s = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds()
 
-    for (var i = 0; i < errorLines.length; i++) {
-        process.stdout.write(" " + errorLines[i] + "\n")
-    }
+    var tag = false
 
-    process.stdout.write("\n")
-    process.exit()
-}
-
-global.log = function (text, type) {
-    if (type == "warn") {
-        if (logLevel < 1) {
-            return
-        }
-
-        process.stdout.write("\x1b[33m")
-    }
-    else if (type == "log") {
-        if (logLevel < 2) {
-            return
-        }
-    }
-    else if (type == "debug") {
+    // If the type is debug, check if we should log it, and return a nice colored tag if we do
+    if (type == log.DEBUG) {
         if (logLevel < 3) {
             return
         }
 
-        process.stdout.write("\x1b[33m")
+        tag = colors.cyan("DEBG")
+    }
+    // Idem dito for the LOG log level
+    else if (type == log.LOG) {
+        if (logLevel < 2) {
+            return
+        }
+
+        tag = "LOGN"
+    }
+    // Idem dito for the WARN log level
+    else if (type == log.WARN) {
+        if (logLevel < 1) {
+            return
+        }
+
+        tag = colors.yellow("WARN")
+    }
+    // Errors will always be logged
+    else {
+        tag = colors.red("ERRR")
     }
 
-    process.stdout.write("\x1b[0m\n")
+    // Write it all to console
+    process.stdout.write(`[${h}:${m}:${s}] [${tag}] ${text}\n`)
+
+    // If it was an error, stop execution
+    if (type == log.ERROR) {
+        process.exit()
+    }
 }
+
+// The loglevel constants
+global.log.ERROR = "error"
+global.log.WARN = "warn"
+global.log.LOG = "log"
+global.log.DEBUG = "debug"
+
+log("Starting server...", log.LOG)
 
 fs.readdir("web", function(err, files) {
     for (var i = 0; i < files.length; i++) {
@@ -77,7 +105,7 @@ app.disable("x-powered-by")
 //
 
 var lexer = require("./interpreter/lexer.js")
-var syntact = require("./interpreter/syntact.js")
+var syntact = require("./interpreter/syntax.js")
 
 console.log(util.inspect(
     syntact(
@@ -94,18 +122,25 @@ console.log(util.inspect(
 }
 
 @if(var(--his-age) > 2.0) {
-	send {
+    h1 {
 		content: "He's old";
 	}
 }
 @else {
-	send {
+    h1 {
 		content: calc('He is ' + var(--his-age));
-	}
+
+        color: #fff;
+        font-size: calc(20px + 30vh);
+
+        @if(true == true) {
+            text-align: center;
+        }
+    }
 }
 
 /* I'm a comment */
 `,
         "filename.csss"),
     "filename.csss")
-, {showHidden: false, depth: null}))
+, {showHidden: false, depth: null, maxArrayLength: null, breakLength: 60}))

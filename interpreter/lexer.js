@@ -176,7 +176,7 @@ module.exports = function(text, filename) {
 		}
 
 		// IDENTIFIER
-		else if (/[a-zA-Z]/.test(current)) {
+		else if (/[a-zA-Z#0-9-]/.test(current)) {
 			// Can sometimes match undefined, skip those
 			if (typeof current == "undefined") {
 				continue
@@ -184,7 +184,7 @@ module.exports = function(text, filename) {
 
 			var identifier = current
 
-			while (/[a-zA-Z]/.test(next())) {
+			while (/[a-zA-Z#0-9-]/.test(next())) {
 				identifier += current
 			}
 
@@ -192,12 +192,8 @@ module.exports = function(text, filename) {
 		}
 
 		// If it matches nothing else, and isn't a whitespace character, throw an error
-		else if (current.charCodeAt(0) != 9 && current.charCodeAt(0) != 10) {
-			parseError([
-				`Lexer error: Invalid character "${current}".`,
-				`In ${filename} at line ${line}.`,
-			])
-			return
+		else if (current.charCodeAt(0) != 9 && current.charCodeAt(0) != 10 && current.charCodeAt(0) != 32) {
+			log(`Lexer error: Invalid character "${current}" in ${filename} at line ${line}.`, log.ERROR)
 		}
 	}
 

@@ -1,11 +1,12 @@
 {
   "name": "csss-server",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A CSSS HTTP server",
   "main": "server.js",
   "author": "Lem Severein <lem@tesler.nl>",
   "license": "MIT",
   "dependencies": {
+    "colors": "^1.1.2",
     "express": "^4.14.0"
   }
 }
