@@ -1,4 +1,4 @@
-![CSSS logo](logo.png)
+![CSSS logo](logoHeader.svg)
 
 # CSSS-Server _(aka CSSSS)_
 

@@ -1,5 +1,5 @@
 // All allowed comparative operators
-var comparators = [
+const comparators = [
 	"==",
 	"!=",
 	">=",
@@ -9,7 +9,7 @@ var comparators = [
 ]
 
 // All allowed arithmetic operators
-var arithmetics = [
+const arithmetics = [
 	"+",
 	"-",
 	"*",
@@ -46,13 +46,13 @@ module.exports = function(text, filename) {
 	}
 
 	// Array containing all generated tokens
-	var tokens = []
+	let tokens = []
 	// Current char index
-	var index = 0
+	let index = 0
 	// Current file line number
-	var line = 1
+	let line = 1
 	// The currently active char
-	var current
+	let current
 
 	// Loop though the whole file
 	while (index < text.length) {
@@ -76,7 +76,7 @@ module.exports = function(text, filename) {
 		// KEYWORD
 		// All keywords start with an @ in CSSS
 		else if (current == "@") {
-			var keyword = ""
+			let keyword = ""
 
 			while (/[a-zA-Z]/.test(next())) {
 				keyword += current
@@ -116,7 +116,7 @@ module.exports = function(text, filename) {
 		}
 		// Capture the actual variable
 		else if (current + text[index + 1] == "--") {
-			var variable = current
+			let variable = current
 
 			while (/\w|-/.test(next())) {
 				variable += current
@@ -152,8 +152,8 @@ module.exports = function(text, filename) {
 		// STRING
 		// Anything starting with "
 		else if (/["|']/.test(current)) {
-			var string = ""
-			var closing = current
+			let string = ""
+			let closing = current
 
 			while (next() != closing) {
 				string += current
@@ -165,7 +165,7 @@ module.exports = function(text, filename) {
 
 		// FLOAT
 		else if (/\d|\./.test(current)) {
-			var float = ""
+			let float = ""
 
 			while (/\d|\./.test(current)) {
 				float += current
@@ -175,20 +175,38 @@ module.exports = function(text, filename) {
 			pushToken("float", float)
 		}
 
-		// IDENTIFIER
-		else if (/[a-zA-Z#0-9-]/.test(current)) {
+		// IDENTIFIER & BOOL
+		else if (/[a-zA-Z%0-9-]/.test(current)) {
 			// Can sometimes match undefined, skip those
 			if (typeof current == "undefined") {
 				continue
 			}
 
-			var identifier = current
+			let identifier = current
 
-			while (/[a-zA-Z#0-9-]/.test(next())) {
+			while (/[a-zA-Z%0-9-]/.test(next())) {
 				identifier += current
 			}
 
-			pushToken("identifier", identifier)
+			lowIndentifier = identifier.toLowerCase()
+
+			if (lowIndentifier == "true" || lowIndentifier == "false") {
+				pushToken("bool", lowIndentifier)
+			}
+			else {
+				pushToken("identifier", identifier)
+			}
+		}
+
+		// HEX as identifier
+		else if (current == "#") {
+			let hex = current
+
+			while (/[a-fA-F0-9]/.test(next())) {
+				hex += current
+			}
+
+			pushToken("identifier", hex)
 		}
 
 		// If it matches nothing else, and isn't a whitespace character, throw an error

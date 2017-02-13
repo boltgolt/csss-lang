@@ -18,6 +18,12 @@ var version = "0.0.1"
  * @param  {String} type One of the log types/levels, see below
  */
 global.log = function(text, type) {
+    // Do not allow logs without type
+    if (typeof type != "string") {
+        log(`Typeless log text: "${text}"`, log.DEBUG)
+        log("Log call without a type, please fix.", log.ERROR)
+    }
+
     // Get the current time and add a leading 0 when needed
     var d = new Date()
     var h = (d.getHours() < 10 ? "0" : "") + d.getHours()
@@ -60,7 +66,7 @@ global.log = function(text, type) {
 
     // If it was an error, stop execution
     if (type == log.ERROR) {
-        process.exit()
+        // process.exit()
     }
 }
 
@@ -122,7 +128,7 @@ console.log(util.inspect(
 }
 
 @if(var(--his-age) > 2.0) {
-    h1 {
+    h7 {
 		content: "He's old";
 	}
 }
