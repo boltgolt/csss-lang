@@ -66,7 +66,7 @@ global.log = function(text, type) {
 
     // If it was an error, stop execution
     if (type == log.ERROR) {
-        // process.exit()
+        process.exit()
     }
 }
 
@@ -112,41 +112,44 @@ app.disable("x-powered-by")
 
 var lexer = require("./interpreter/lexer.js")
 var syntact = require("./interpreter/syntax.js")
+var execute = require("./interpreter/execute.js")
 
 console.log(util.inspect(
-    syntact(
-        lexer(`
-@if (var(--my-dad) == "morris") {
-	--his-age: 44;
-}
+    execute(
+        syntact(
+            lexer(`
+    @if ((calc(2 * 2px / 2)) == 3px) {
+    	--his-age: 44;
+    }
 
---index: 8;
+    --index: 8;
 
-@while(var(--index) > 4) {
-	--index: calc(var(--index) - 1);
-	--his-age: calc(var(--his-age) + .1);
-}
+    @while(var(--index) > 4) {
+    	--index: calc(var(--index) - 1);
+    	--his-age: calc(var(--his-age) + .1);
+    }
 
-@if(var(--his-age) > 2.0) {
-    h7 {
-		content: "He's old";
-	}
-}
-@else {
-    h1 {
-		content: calc('He is ' + var(--his-age));
+    @if(var(--his-age) > 2.0) {
+        h7 {
+    		content: "He's old";
+    	}
+    }
+    @else {
+        h1 {
+    		content: calc('He is ' + var(--his-age));
 
-        color: #fff;
-        font-size: calc(20px + 30vh);
+            color: #fff;
+            font-size: calc(20px + 30vh);
 
-        @if(true == true) {
-            text-align: center;
+            @if(true == true) {
+                text-align: center;
+            }
         }
     }
-}
 
-/* I'm a comment */
-`,
+    /* I'm a comment */
+    `,
+            "filename.csss"),
         "filename.csss"),
-    "filename.csss")
-, {showHidden: false, depth: null, maxArrayLength: null, breakLength: 60}))
+    "filename.csss"),
+{showHidden: false, depth: null, maxArrayLength: null, breakLength: 60}))

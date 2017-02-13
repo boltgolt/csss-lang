@@ -1,4 +1,4 @@
-![CSSS logo](logoHeader.svg)
+![CSSS logo](https://cdn.rawgit.com/Boltgolt/CSSS-Server/master/logoHeader.svg)
 
 # CSSS-Server _(aka CSSSS)_
 

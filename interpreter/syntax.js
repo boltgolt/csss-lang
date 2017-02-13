@@ -103,6 +103,7 @@ module.exports = function(tokens, filename) {
 			// Create a new block
 			var newBlock = {
 				type: token.value,
+				line: line,
 				left: [],
 				right: [],
 				operation: "",
@@ -111,7 +112,7 @@ module.exports = function(tokens, filename) {
 
 			// Check if the next node is a (, fail when it's not
 			if (peek(function(token) {token.type != "lpar"})) {
-				log(`Syntax error: Missing opening "(" after ${token.value} statement in ${filename} at line ${line}.`, log.ERROR)
+				log(`Syntax error: Missing opening "(" after ${token.value} statement in ${filename} at line ${line}`, log.ERROR)
 			}
 			next()
 
@@ -130,7 +131,7 @@ module.exports = function(tokens, filename) {
 
 			// Check that the next node is a {
 			if (peek(function(token) {token.type != "lbrace"})) {
-				log(`Syntax error: Missing opening "{" after ${token.value} statement in ${filename} at line ${line}.`, log.ERROR)
+				log(`Syntax error: Missing opening "{" after ${token.value} statement in ${filename} at line ${line}`, log.ERROR)
 			}
 			next()
 
@@ -149,12 +150,13 @@ module.exports = function(tokens, filename) {
 			// Create a new block
 			var newBlock = {
 				type: "else",
+				line: line,
 				children: []
 			}
 
 			// Check that the next node is a {
 			if (peek(function(token) {token.type != "lbrace"})) {
-				log(`Syntax error: Missing opening "{" after else statement in ${filename} at line ${line}.`, log.ERROR)
+				log(`Syntax error: Missing opening "{" after else statement in ${filename} at line ${line}`, log.ERROR)
 			}
 			next()
 
@@ -173,6 +175,7 @@ module.exports = function(tokens, filename) {
 			// Get a new par block
 			var newBlock = {
 				type: "par",
+				line: line,
 				children: []
 			}
 
@@ -196,6 +199,7 @@ module.exports = function(tokens, filename) {
 				// Create a new node
 				newBlock = {
 					type: "assignment",
+					line: line,
 					name: token.value,
 					right: []
 				}
@@ -215,6 +219,7 @@ module.exports = function(tokens, filename) {
 				// Push the mentioned variable to the parent
 				parent.push({
 					type: "variable",
+					line: line,
 					name: token.value
 				})
 			}
@@ -225,12 +230,13 @@ module.exports = function(tokens, filename) {
 			// Create a new node
 			var newBlock = {
 				type: "calc",
+				line: line,
 				children: []
 			}
 
 			// Check that the next node is a (
 			if (peek(function(token) {token.type != "lpar"})) {
-				log(`Syntax error: Missing opening "{" after calc statement in ${filename} at line ${line}.`, log.ERROR)
+				log(`Syntax error: Missing opening "{" after calc statement in ${filename} at line ${line}`, log.ERROR)
 			}
 			next()
 
@@ -248,6 +254,7 @@ module.exports = function(tokens, filename) {
 			// Create a new node
 			var newBlock = {
 				type: "property",
+				line: line,
 				name: token.value,
 				children: []
 			}
@@ -268,12 +275,13 @@ module.exports = function(tokens, filename) {
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "lbrace"})) {
 			// Check if this is a valid HTML tag
 			if (validTags.indexOf(token.value) == -1) {
-				log(`The identifier ${token.value} (line ${line} in ${filename}) is not a valid HTML5 tag, but is parsed as one.`, log.WARN)
+				log(`The identifier ${token.value} (line ${line} in ${filename}) is not a valid HTML5 tag, but is parsed as one`, log.WARN)
 			}
 
 			// Create a new node
 			var newBlock = {
 				type: "element",
+				line: line,
 				name: token.value,
 				children: []
 			}
@@ -295,6 +303,7 @@ module.exports = function(tokens, filename) {
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "semi"})) {
 			parent.push({
 				type: "value",
+				line: line,
 				value: token.value
 			})
 		}
@@ -304,6 +313,7 @@ module.exports = function(tokens, filename) {
 			// Push the arithmetic operator to the parent
 			parent.push({
 				type: "arithmetic",
+				line: line,
 				value: token.value
 			})
 		}
@@ -313,6 +323,7 @@ module.exports = function(tokens, filename) {
 			// Push the boolean to the parent
 			parent.push({
 				type: "bool",
+				line: line,
 				value: token.value == "true"
 			})
 		}
@@ -322,6 +333,7 @@ module.exports = function(tokens, filename) {
 			// Push the string to the parent
 			parent.push({
 				type: "string",
+				line: line,
 				value: token.value
 			})
 		}
@@ -333,6 +345,7 @@ module.exports = function(tokens, filename) {
 				// Push to the parent with the right unit
 				parent.push({
 					type: "number",
+					line: line,
 					unit: peek(function(token) {return token.value}),
 					value: parseFloat(token.value)
 				})
@@ -344,20 +357,16 @@ module.exports = function(tokens, filename) {
 				// Push the normal float to the parent
 				parent.push({
 					type: "number",
+					line: line,
 					unit: "plain",
 					value: parseFloat(token.value)
 				})
 			}
 		}
 
-		// Ignore semis and left braces
-		// else if (token.type == "semi" && token.type == "semi") {
-		// 	// Catch it but don't do anything
-		// }
-
 		// We don't know what to do with this
 		else {
-			log(`Unexpected ${token.type} ("${token.value}") found at line ${line} in ${filename}.`, log.ERROR)
+			log(`Unexpected ${token.type} ("${token.value}") found at line ${line} in ${filename}`, log.ERROR)
 		}
 	}
 

@@ -13,8 +13,7 @@ const arithmetics = [
 	"+",
 	"-",
 	"*",
-	"/",
-	"%"
+	"/"
 ]
 
 // The function call by the main server file
@@ -211,7 +210,7 @@ module.exports = function(text, filename) {
 
 		// If it matches nothing else, and isn't a whitespace character, throw an error
 		else if (current.charCodeAt(0) != 9 && current.charCodeAt(0) != 10 && current.charCodeAt(0) != 32) {
-			log(`Lexer error: Invalid character "${current}" in ${filename} at line ${line}.`, log.ERROR)
+			log(`Lexer error: Invalid character "${current}" in ${filename} at line ${line}`, log.ERROR)
 		}
 	}
 
