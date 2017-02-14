@@ -1,3 +1,8 @@
+/*
+ * STEP 1: Lexer
+ * Turns a stream of characters into an array of tokens
+ */
+
 // All allowed comparative operators
 const comparators = [
 	"==",
@@ -72,7 +77,7 @@ module.exports = function(text, filename) {
 			next(next())
 		}
 
-		// KEYWORD
+		/// KEYWORD
 		// All keywords start with an @ in CSSS
 		else if (current == "@") {
 			let keyword = ""
@@ -84,7 +89,7 @@ module.exports = function(text, filename) {
 			pushToken("keyword", keyword)
 		}
 
-		// xPAR & xBRACE
+		/// xPAR & xBRACE
 		else if (current == "(") {
 			pushToken("lpar", "(")
 			next()
@@ -102,13 +107,13 @@ module.exports = function(text, filename) {
 			next()
 		}
 
-		// SEMI
+		/// SEMI
 		else if (current == ";") {
 			pushToken("semi", ";")
 			next()
 		}
 
-		// VARIABLE
+		/// VARIABLE
 		// Just ignore the "var()" things, they're only here because of CSS
 		else if (current + text[index + 1] + text[index + 2] == "var") {
 			index += 3
@@ -124,7 +129,7 @@ module.exports = function(text, filename) {
 			pushToken("variable", variable)
 		}
 
-		// COMPARATOR
+		/// COMPARATOR
 		// Capture all 2-char comparators
 		else if (comparators.indexOf(current + text[index + 1]) != -1) {
 			pushToken("comparator", current + text[index + 1])
@@ -136,19 +141,19 @@ module.exports = function(text, filename) {
 			next()
 		}
 
-		// ARITHMETIC
+		/// ARITHMETIC
 		else if (arithmetics.indexOf(current) != -1) {
 			pushToken("arithmetic", current)
 			next()
 		}
 
-		// ASSIGN
+		/// ASSIGN
 		else if (current == ":") {
 			pushToken("assign", ":")
 			next()
 		}
 
-		// STRING
+		/// STRING
 		// Anything starting with "
 		else if (/["|']/.test(current)) {
 			let string = ""
@@ -162,7 +167,7 @@ module.exports = function(text, filename) {
 			next()
 		}
 
-		// FLOAT
+		/// FLOAT
 		else if (/\d|\./.test(current)) {
 			let float = ""
 
@@ -174,7 +179,7 @@ module.exports = function(text, filename) {
 			pushToken("float", float)
 		}
 
-		// IDENTIFIER & BOOL
+		/// IDENTIFIER & BOOL
 		else if (/[a-zA-Z%0-9-]/.test(current)) {
 			// Can sometimes match undefined, skip those
 			if (typeof current == "undefined") {
@@ -197,7 +202,7 @@ module.exports = function(text, filename) {
 			}
 		}
 
-		// HEX as identifier
+		/// HEX as identifier
 		else if (current == "#") {
 			let hex = current
 

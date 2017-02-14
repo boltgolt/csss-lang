@@ -1,3 +1,8 @@
+/*
+ * STEP 2: Syntax scanner
+ * Turns the tokens into a syntax tree, showing the parent-child relation between tokens
+ */
+
 // All allowed HTML tags
 const validTags = require("./validTags.js")
 
@@ -76,7 +81,7 @@ module.exports = function(tokens, filename) {
 
 	/**
 	 * Keep walking though nodes until closing function matches
-	 * @param  {Object}      parent        The parent object in the ast
+	 * @param  {Object}   parent        The parent object in the ast
 	 * @param  {Function} closeFunction Function that, when returning true, will hand the walking over to the caller
 	 */
 	function walkThrough(parent, closeFunction) {
@@ -88,7 +93,7 @@ module.exports = function(tokens, filename) {
 
 	/**
 	 * Parse a the current token
-	 * @param  {Object}      parent        The parent object in the ast
+	 * @param  {Object}   parent        The parent object in the ast
 	 * @param  {Function} closeFunction Function that, when returning true, will hand the walking over to the parent
 	 * @return {Bool}                   When true, will quit walking
 	 */
@@ -139,7 +144,6 @@ module.exports = function(tokens, filename) {
 			walkThrough(newBlock.children, function() {
 				return token.type == "rbrace"
 			})
-			// next()
 
 			// Push this block to our parent
 			parent.push(newBlock)
@@ -189,12 +193,14 @@ module.exports = function(tokens, filename) {
 		}
 
 		// If we match our parents closing function, hand the waling back to them
+		// Should be at this spot in the elifs because all opening chars are above it
 		else if (closeFunction()) {
 			return true
 		}
 
-		// VARIABLE
+		/// VARIABLE
 		else if (token.type == "variable") {
+			// If the variable is followed by an :, we're assigning
 			if (peek(function(token) {return token.type == "assign"})) {
 				// Create a new node
 				newBlock = {
@@ -225,7 +231,7 @@ module.exports = function(tokens, filename) {
 			}
 		}
 
-		// CALC
+		/// CALC
 		else if (token.type == "identifier" && token.value == "calc") {
 			// Create a new node
 			var newBlock = {
@@ -249,7 +255,7 @@ module.exports = function(tokens, filename) {
 			parent.push(newBlock)
 		}
 
-		// PROPERTY
+		/// PROPERTY
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "assign"})) {
 			// Create a new node
 			var newBlock = {
@@ -271,7 +277,7 @@ module.exports = function(tokens, filename) {
 			parent.push(newBlock)
 		}
 
-		// ELEMENT
+		/// ELEMENT
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "lbrace"})) {
 			// Check if this is a valid HTML tag
 			if (validTags.indexOf(token.value) == -1) {
@@ -298,7 +304,7 @@ module.exports = function(tokens, filename) {
 			parent.push(newBlock)
 		}
 
-		// VALUE
+		/// VALUE
 		// If the next thing is a semicolon, we have a css value
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "semi"})) {
 			parent.push({
@@ -308,7 +314,7 @@ module.exports = function(tokens, filename) {
 			})
 		}
 
-		// ARITHMETIC
+		/// ARITHMETIC
 		else if (token.type == "arithmetic") {
 			// Push the arithmetic operator to the parent
 			parent.push({
@@ -318,7 +324,7 @@ module.exports = function(tokens, filename) {
 			})
 		}
 
-		// BOOL
+		/// BOOL
 		else if (token.type == "bool") {
 			// Push the boolean to the parent
 			parent.push({
@@ -328,7 +334,7 @@ module.exports = function(tokens, filename) {
 			})
 		}
 
-		// STRING
+		/// STRING
 		else if (token.type == "string") {
 			// Push the string to the parent
 			parent.push({
@@ -338,7 +344,7 @@ module.exports = function(tokens, filename) {
 			})
 		}
 
-		// NUMBER
+		/// NUMBER
 		else if (token.type == "float") {
 			// If the next node is an CSS unit
 			if (peek(function(token) {return token.type == "identifier" && validUnits.indexOf(token.value) != -1})) {
@@ -375,6 +381,6 @@ module.exports = function(tokens, filename) {
 		return false
 	})
 
-	// Return the A.S.T.
+	// Return the AST
 	return ast
 }

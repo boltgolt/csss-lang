@@ -1,3 +1,4 @@
+// All valid HTML5 tage, minus tags like <body> which should not be in CSSS as they are handled by the generator
 module.exports = [
 	"a",
 	"abbr",
@@ -44,7 +45,6 @@ module.exports = [
 	"h5",
 	"h6",
 	"hr",
-	"html",
 	"iframe",
 	"img",
 	"input",

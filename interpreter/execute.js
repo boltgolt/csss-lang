@@ -1,3 +1,8 @@
+/*
+ * STEP 3: Executor
+ * Runs through the syntax tree and executes every node so only the rendered elements and their properties remain
+ */
+
 module.exports = function(ast, filename) {
 	// return ast
 
