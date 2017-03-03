@@ -1,5 +1,5 @@
 /*
- * STEP 4: Generator
+ * STEP 5: Generator
  * Turns the tree of objects into valid HTML and adds general tags to it
  */
 

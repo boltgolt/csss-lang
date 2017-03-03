@@ -1,5 +1,5 @@
 /*
- * STEP 3: Executor
+ * STEP 4: Executor
  * Runs through the syntax tree and executes every node so only the rendered elements and their properties remain
  */
 

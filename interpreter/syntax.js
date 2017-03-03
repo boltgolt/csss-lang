@@ -1,5 +1,5 @@
 /*
- * STEP 2: Syntax scanner
+ * STEP 3: Syntax scanner
  * Turns the tokens into a syntax tree, showing the parent-child relation between tokens
  */
 

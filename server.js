@@ -10,7 +10,6 @@ const util = require('util')
 var app = express()
 
 var logLevel = 3
-var version = "0.0.1"
 
 /**
  * Send a message to the console
@@ -76,7 +75,7 @@ global.log.WARN = "warn"
 global.log.LOG = "log"
 global.log.DEBUG = "debug"
 
-log("Starting server...", log.LOG)
+log("Starting CSSS-Server v" + require("./package.json").version, log.LOG)
 
 fs.readdir("web", function(err, files) {
     for (var i = 0; i < files.length; i++) {

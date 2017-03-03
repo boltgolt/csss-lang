@@ -1,5 +1,5 @@
 /*
- * STEP 1: Lexer
+ * STEP 2: Lexer
  * Turns a stream of characters into an array of tokens
  */
 
