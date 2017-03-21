@@ -1,154 +1,102 @@
 // Required packages
-var express = require("express")
-var colors = require("colors/safe")
-var fs = require("fs")
+const express = require("express")
+const colors = require("colors/safe")
+const fs = require("fs")
 
-// Temp includes
-const util = require('util')
+// Load the configuration file
+global.config = require("config")
 
 // Init express app
-var app = express()
+let app = express()
 
-var logLevel = 3
+let logLevel = 3
 
 /**
  * Send a message to the console
  * @param  {String} text The text to display
  * @param  {String} type One of the log types/levels, see below
  */
-global.log = function(text, type) {
-    // Do not allow logs without type
-    if (typeof type != "string") {
-        log(`Typeless log text: "${text}"`, log.DEBUG)
-        log("Log call without a type, please fix.", log.ERROR)
-    }
+global.print = function(text, type) {
+	// Do not allow logs without type
+	if (typeof type != "string") {
+		print(`Typeless log text: "${text}"`, print.DEBUG)
+		print("Log call without a type, please fix.", print.ERROR)
+	}
 
-    // Get the current time and add a leading 0 when needed
-    var d = new Date()
-    var h = (d.getHours() < 10 ? "0" : "") + d.getHours()
-    var m = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes()
-    var s = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds()
+	// Get the current time and add a leading 0 when needed
+	let d = new Date()
+	let h = (d.getHours() < 10 ? "0" : "") + d.getHours()
+	let m = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes()
+	let s = (d.getSeconds() < 10 ? "0" : "") + d.getSeconds()
 
-    var tag = false
+	let tag = false
 
-    // If the type is debug, check if we should log it, and return a nice colored tag if we do
-    if (type == log.DEBUG) {
-        if (logLevel < 3) {
-            return
-        }
+	// If the type is debug, check if we should log it, and return a nice colored tag if we do
+	if (type == print.DEBUG) {
+		if (logLevel < 3) {
+			return
+		}
 
-        tag = colors.cyan("DEBG")
-    }
-    // Idem dito for the LOG log level
-    else if (type == log.LOG) {
-        if (logLevel < 2) {
-            return
-        }
+		tag = colors.cyan("DEBG")
+	}
+	// Idem dito for the LOG log level
+	else if (type == print.LOG) {
+		if (logLevel < 2) {
+			return
+		}
 
-        tag = "LOGN"
-    }
-    // Idem dito for the WARN log level
-    else if (type == log.WARN) {
-        if (logLevel < 1) {
-            return
-        }
+		tag = "LOGN"
+	}
+	// Idem dito for the WARN log level
+	else if (type == print.WARN) {
+		if (logLevel < 1) {
+			return
+		}
 
-        tag = colors.yellow("WARN")
-    }
-    // Errors will always be logged
-    else {
-        tag = colors.red("ERRR")
-    }
+		tag = colors.yellow("WARN")
+	}
+	// Errors will always be logged
+	else {
+		tag = colors.red("ERRR")
+	}
 
-    // Write it all to console
-    process.stdout.write(`[${h}:${m}:${s}] [${tag}] ${text}\n`)
+	// Write it all to console
+	process.stdout.write(`[${h}:${m}:${s}] [${tag}] ${text}\n`)
 
-    // If it was an error, stop execution
-    if (type == log.ERROR) {
-        process.exit()
-    }
+	// If it was an error, stop execution
+	if (type == print.ERROR) {
+		process.exit()
+	}
 }
 
 // The loglevel constants
-global.log.ERROR = "error"
-global.log.WARN = "warn"
-global.log.LOG = "log"
-global.log.DEBUG = "debug"
+global.print.ERROR = "error"
+global.print.WARN = "warn"
+global.print.LOG = "log"
+global.print.DEBUG = "debug"
 
-log("Starting CSSS-Server v" + require("./package.json").version, log.LOG)
+print("Starting CSSS-Server v" + require("./package.json").version, print.LOG)
 
-fs.readdir("web", function(err, files) {
-    for (var i = 0; i < files.length; i++) {
-        if (files[i].indexOf(".csss") == files[i].length - 5) {
-            function addToExpress(path, file) {
-                app.get(path, function (req, res) {
-                    parser.parse(file, function(resp) {
-                        res.set("Server", "CSSSS (Cascading Style Sheets Script Server)")
-                        res.set("Content-Type", "text/plain")
-                        res.send(resp)
-                    })
-                })
-            }
+const util = require('util')
 
-            var name = files[i].substr(0, files[i].length - 5)
+let preprocessor = require("./interpreter/preprocessor.js")
+// let lexer = require("./interpreter/lexer.js")
+// let syntact = require("./interpreter/syntax.js")
+// let execute = require("./interpreter/execute.js")
 
-            addToExpress("/" + name + ".csss", name)
-
-            if (name == "index") {
-                addToExpress("/", name)
-            }
-        }
-    }
-})
-
-app.disable("x-powered-by")
-
-// app.listen(3000, function () {
-//   console.log('Example app listening on port 3000!')
-// })
-//
-//
-
-var lexer = require("./interpreter/lexer.js")
-var syntact = require("./interpreter/syntax.js")
-var execute = require("./interpreter/execute.js")
-
-console.log(util.inspect(
-    execute(
-        syntact(
-            lexer(`
-    @if ((calc(2 * 2px / 2)) == 3px) {
-    	--his-age: 44;
-    }
-
-    --index: 8;
-
-    @while(var(--index) > 4) {
-    	--index: calc(var(--index) - 1);
-    	--his-age: calc(var(--his-age) + .1);
-    }
-
-    @if(var(--his-age) > 2.0) {
-        h7 {
-    		content: "He's old";
-    	}
-    }
-    @else {
-        h1 {
-    		content: calc('He is ' + var(--his-age));
-
-            color: #fff;
-            font-size: calc(20px + 30vh);
-
-            @if(true == true) {
-                text-align: center;
-            }
-        }
-    }
-
-    /* I'm a comment */
-    `,
-            "filename.csss"),
-        "filename.csss"),
-    "filename.csss"),
-{showHidden: false, depth: null, maxArrayLength: null, breakLength: 60}))
+console.log(
+	util.inspect((
+			preprocessor(
+				fs.readFileSync("./example.csss").toString(),
+				"example.csss",
+				process.cwd()
+			)
+		),
+		{
+			showHidden: false,
+			depth: null,
+			maxArrayLength: null,
+			breakLength: 60
+		}
+	)
+)

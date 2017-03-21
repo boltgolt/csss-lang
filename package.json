@@ -7,6 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "colors": "^1.1.2",
+    "config": "^1.25.1",
     "express": "^4.14.0"
   }
 }

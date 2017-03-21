@@ -1,0 +1,4 @@
+{
+	// The maximum amount @require can include itself
+	recursionLimit: 5
+}

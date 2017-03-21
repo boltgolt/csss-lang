@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /* Should throw recursion error */
 @require "example.csss";
 
@@ -24,7 +26,7 @@ ul#list {
 	list-style-type: decimal;
 
 	@while (--index < 6 || !true) {
-		/* Should throw a warning when a id is added */
+		/* Should throw a warning when an ID is added (DOM can only have unique IDs) */
 		li.listItem[data-index=--index]] {
 			content: --deep-array[1][--index];
 
