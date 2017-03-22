@@ -38,7 +38,7 @@ module.exports = function(text, filename, location) {
 		// Test if the file starts with a shebang
 		if (text.substr(0, 2) == "#!") {
 			// Remove the first line from the text
-			text = text.substr(text.indexOf("\n") + 1)
+			text = text.substr(text.indexOf("\n"))
 		}
 
 		// Loop through all characters in the file

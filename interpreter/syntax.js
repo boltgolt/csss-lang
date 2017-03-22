@@ -6,23 +6,6 @@
 // All allowed HTML tags
 const validTags = require("./validTags.js")
 
-// All units recognised as CSS unit
-const validUnits = [
-	"%",
-	"cm",
-	"em",
-	"ex",
-	"in",
-	"mm",
-	"pc",
-	"pt",
-	"px",
-	"vh",
-	"vw",
-	"vmin"
-]
-
-
 module.exports = function(tokens, filename) {
 	// Variable containing the whole program
 	var ast = {

@@ -80,16 +80,19 @@ print("Starting CSSS-Server v" + require("./package.json").version, print.LOG)
 const util = require('util')
 
 let preprocessor = require("./interpreter/preprocessor.js")
-// let lexer = require("./interpreter/lexer.js")
+let lexer = require("./interpreter/lexer.js")
 // let syntact = require("./interpreter/syntax.js")
 // let execute = require("./interpreter/execute.js")
 
 console.log(
 	util.inspect((
-			preprocessor(
-				fs.readFileSync("./example.csss").toString(),
-				"example.csss",
-				process.cwd()
+			lexer(
+				preprocessor(
+					fs.readFileSync("./example.csss").toString(),
+					"example.csss",
+					process.cwd()
+				),
+				"example.csss"
 			)
 		),
 		{

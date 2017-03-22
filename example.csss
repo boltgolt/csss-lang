@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* Should throw recursion error */
-@require "example.csss";
+/*@require "example.csss";*/
 
 --width: calc(20vw * 2);
 
@@ -27,7 +27,7 @@ ul#list {
 
 	@while (--index < 6 || !true) {
 		/* Should throw a warning when an ID is added (DOM can only have unique IDs) */
-		li.listItem[data-index=--index]] {
+		li.listItem[data-index=--index] {
 			content: --deep-array[1][--index];
 
 			@if (--index == 0) {

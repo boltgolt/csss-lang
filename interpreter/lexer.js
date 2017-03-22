@@ -21,6 +21,28 @@ const arithmetics = [
 	"/"
 ]
 
+// All allowed logical operators
+const logics = [
+	"&&",
+	"||"
+]
+
+// All units recognised as CSS unit
+const validUnits = [
+	"%",
+	"cm",
+	"em",
+	"ex",
+	"in",
+	"mm",
+	"pc",
+	"pt",
+	"px",
+	"vh",
+	"vw",
+	"vmin"
+]
+
 // The function call by the main server file
 module.exports = function(text, filename) {
 	/**
@@ -49,6 +71,32 @@ module.exports = function(text, filename) {
 		return current = text[++index]
 	}
 
+	/**
+	 * Look at characters in the text without changing the index
+	 * @param  {Int}    start    The starting position relative to the current index, where 0 is the index
+	 * @param  {Int}    distance Optional, the length of the string to return. For example, (0, 2) will return the current and next char
+	 * @return {String}          The character(s) found
+	 */
+	function peek(start, distance) {
+		// If we have the optional length
+		if (typeof distance == "number") {
+			// WIll de filled with the found chars
+			var output = ""
+
+			// Loop through the upcomming chars until we hit the max distance
+			for (var i = 0; i < distance; i++) {
+				// Add the found char to the output
+				output += text[index + start + i]
+			}
+
+			return output
+		}
+		// If the length is not specified, we only return the next char
+		else {
+			return text[index + start]
+		}
+	}
+
 	// Array containing all generated tokens
 	let tokens = []
 	// Current char index
@@ -68,8 +116,8 @@ module.exports = function(text, filename) {
 		}
 
 		// Skip all comments
-		if (current + text[index + 1] == "/*") {
-			while (current + text[index + 1] != "*/") {
+		if (peek(0, 2) == "/*") {
+			while (peek(0, 2) != "*/") {
 				next()
 			}
 
@@ -89,7 +137,7 @@ module.exports = function(text, filename) {
 			pushToken("keyword", keyword)
 		}
 
-		/// xPAR & xBRACE
+		/// xPAR, xBRACE & xSBRACE
 		else if (current == "(") {
 			pushToken("lpar", "(")
 			next()
@@ -106,6 +154,14 @@ module.exports = function(text, filename) {
 			pushToken("rbrace", "}")
 			next()
 		}
+		else if (current == "[") {
+			pushToken("lsbrace", "[")
+			next()
+		}
+		else if (current == "]") {
+			pushToken("rsbrace", "]")
+			next()
+		}
 
 		/// SEMI
 		else if (current == ";") {
@@ -115,11 +171,11 @@ module.exports = function(text, filename) {
 
 		/// VARIABLE
 		// Just ignore the "var()" things, they're only here because of CSS
-		else if (current + text[index + 1] + text[index + 2] == "var") {
+		else if (peek(0, 3) == "var") {
 			index += 3
 		}
 		// Capture the actual variable
-		else if (current + text[index + 1] == "--") {
+		else if (peek(0, 2) == "--") {
 			let variable = current
 
 			while (/\w|-/.test(next())) {
@@ -129,10 +185,24 @@ module.exports = function(text, filename) {
 			pushToken("variable", variable)
 		}
 
+		/// FLOAT
+		// Allow negetive floats but catch classes
+		else if (/\d/.test(current) || (current == "-" && /\d|\./.test(peek(1))) || (current == "." && /\d/.test(peek(1)))) {
+			let float = current
+			next()
+
+			while (/\d|\./.test(current)) {
+				float += current
+				next()
+			}
+
+			pushToken("float", parseFloat(float))
+		}
+
 		/// COMPARATOR
 		// Capture all 2-char comparators
-		else if (comparators.indexOf(current + text[index + 1]) != -1) {
-			pushToken("comparator", current + text[index + 1])
+		else if (comparators.indexOf(peek(0, 2)) != -1) {
+			pushToken("comparator", peek(0, 2))
 			next(next())
 		}
 		// And Capture the 1 char ones too
@@ -147,9 +217,26 @@ module.exports = function(text, filename) {
 			next()
 		}
 
+		/// LOGIC
+		else if (logics.indexOf(peek(0, 2)) != -1) {
+			pushToken("logic", peek(0, 2))
+			next(next())
+		}
+		// Inversions are special
+		else if (current == "!") {
+			pushToken("logic", "!")
+			next()
+		}
+
 		/// ASSIGN
 		else if (current == ":") {
 			pushToken("assign", ":")
+			next()
+		}
+
+		/// SEPARATOR
+		else if (current == "," || current == "=") {
+			pushToken("separator", current)
 			next()
 		}
 
@@ -167,19 +254,24 @@ module.exports = function(text, filename) {
 			next()
 		}
 
-		/// FLOAT
-		else if (/\d|\./.test(current)) {
-			let float = ""
+		/// CLASS
+		// Anything starting with a dot followed by a letter
+		else if (/\.[a-zA-Z]/.test(peek(0 , 2))) {
+			let classname = ""
+			// Skip the opening dot
+			next()
 
-			while (/\d|\./.test(current)) {
-				float += current
+			// Continue when we find letters, numbers or dashes
+			while (/[\w-]/.test(current)) {
+				classname += current
 				next()
 			}
 
-			pushToken("float", float)
+			pushToken("class", classname)
+			next()
 		}
 
-		/// IDENTIFIER & BOOL
+		/// IDENTIFIER, BOOL & UNIT
 		else if (/[a-zA-Z%0-9-]/.test(current)) {
 			// Can sometimes match undefined, skip those
 			if (typeof current == "undefined") {
@@ -197,25 +289,28 @@ module.exports = function(text, filename) {
 			if (lowIndentifier == "true" || lowIndentifier == "false") {
 				pushToken("bool", lowIndentifier)
 			}
+			else if (validUnits.indexOf(lowIndentifier) != -1) {
+				pushToken("unit", lowIndentifier)
+			}
 			else {
 				pushToken("identifier", identifier)
 			}
 		}
 
-		/// HEX as identifier
+		/// HASH as identifier
 		else if (current == "#") {
-			let hex = current
+			let hash = ""
 
-			while (/[a-fA-F0-9]/.test(next())) {
-				hex += current
+			while (/[\w-]/.test(next())) {
+				hash += current
 			}
 
-			pushToken("identifier", hex)
+			pushToken("hash", hash)
 		}
 
 		// If it matches nothing else, and isn't a whitespace character, throw an error
 		else if (current.charCodeAt(0) != 9 && current.charCodeAt(0) != 10 && current.charCodeAt(0) != 32) {
-			log(`Lexer error: Invalid character "${current}" in ${filename} at line ${line}`, log.ERROR)
+			print(`Lexer error: Invalid character "${current}" in ${filename} at line ${line}`, print.ERROR)
 		}
 	}
 
