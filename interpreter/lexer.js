@@ -3,6 +3,32 @@
  * Turns a stream of characters into an array of tokens
  */
 
+/*
+ * Possible token types:
+ *
+ * keyword      Any control flow statement, stripped of the @
+ * variable     Variable name, without "--"
+ * float        Number
+ * comparator   A comparison operator
+ * arithmetic   An arithmetic operator
+ * logic        A logical operator
+ * string       Just a normal string
+ * bool         A boolean, as a boolean
+ * unit         A CSS unit
+ * identifier   All words that do not match any of the above
+ * hash         Either a hex color value or an ID
+ *
+ * lpar         Opening parenthesis
+ * rpar         Closing parenthesis
+ * lcurb        Opening curly bracket
+ * rcurb        Closing curly bracket
+ * lsqarb       Opening square bracket
+ * rsqarb       Closing square bracket
+ * semi         Semicolon
+ * assign       Either a colon or an equals sign
+ * separator    Comma
+ */
+
 // All allowed comparative operators
 const comparators = [
 	"==",
@@ -18,7 +44,9 @@ const arithmetics = [
 	"+",
 	"-",
 	"*",
-	"/"
+	"/",
+	"%",
+	"^"
 ]
 
 // All allowed logical operators
@@ -53,7 +81,9 @@ module.exports = function(text, filename) {
 	function pushToken(type, value) {
 		tokens.push({
 			type: type,
-			value: value
+			value: value,
+			line: line,
+			column: column
 		})
 	}
 
@@ -65,8 +95,12 @@ module.exports = function(text, filename) {
 		// If we've just passed a newline, increment the line number
 		if (current == "\n") {
 			line++
-			pushToken("line", line)
+			// Reset the column for the new line
+			column = 0
 		}
+
+		// We've got the next character, increment the column
+		column++
 
 		return current = text[++index]
 	}
@@ -81,10 +115,10 @@ module.exports = function(text, filename) {
 		// If we have the optional length
 		if (typeof distance == "number") {
 			// WIll de filled with the found chars
-			var output = ""
+			let output = ""
 
 			// Loop through the upcomming chars until we hit the max distance
-			for (var i = 0; i < distance; i++) {
+			for (let i = 0; i < distance; i++) {
 				// Add the found char to the output
 				output += text[index + start + i]
 			}
@@ -103,6 +137,8 @@ module.exports = function(text, filename) {
 	let index = 0
 	// Current file line number
 	let line = 1
+	// Current line column position
+	let column = 1
 	// The currently active char
 	let current
 
@@ -147,19 +183,19 @@ module.exports = function(text, filename) {
 			next()
 		}
 		else if (current == "{") {
-			pushToken("lbrace", "{")
+			pushToken("lcurb", "{")
 			next()
 		}
 		else if (current == "}") {
-			pushToken("rbrace", "}")
+			pushToken("rcurb", "}")
 			next()
 		}
 		else if (current == "[") {
-			pushToken("lsbrace", "[")
+			pushToken("lsqarb", "[")
 			next()
 		}
 		else if (current == "]") {
-			pushToken("rsbrace", "]")
+			pushToken("rsqarb", "]")
 			next()
 		}
 
@@ -229,13 +265,13 @@ module.exports = function(text, filename) {
 		}
 
 		/// ASSIGN
-		else if (current == ":") {
+		else if (current == ":" || current == "=") {
 			pushToken("assign", ":")
 			next()
 		}
 
 		/// SEPARATOR
-		else if (current == "," || current == "=") {
+		else if (current == ",") {
 			pushToken("separator", current)
 			next()
 		}
@@ -287,7 +323,8 @@ module.exports = function(text, filename) {
 			lowIndentifier = identifier.toLowerCase()
 
 			if (lowIndentifier == "true" || lowIndentifier == "false") {
-				pushToken("bool", lowIndentifier)
+				// Pass the boolean as an actual boolean
+				pushToken("bool", lowIndentifier == "true")
 			}
 			else if (validUnits.indexOf(lowIndentifier) != -1) {
 				pushToken("unit", lowIndentifier)
