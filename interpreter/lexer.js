@@ -27,6 +27,8 @@
  * semi         Semicolon
  * assign       Either a colon or an equals sign
  * separator    Comma
+ *
+ * All tokens have the full file path of the file they came from, and their line and column number
  */
 
 // All allowed comparative operators
@@ -82,8 +84,11 @@ module.exports = function(text, filename) {
 		tokens.push({
 			type: type,
 			value: value,
-			line: line,
-			column: column
+			meta: {
+				line: currentFile.line,
+				column: currentFile.column,
+				path: currentFile.path
+			}
 		})
 	}
 
@@ -92,15 +97,16 @@ module.exports = function(text, filename) {
 	 * @return {String} The new character, also accesible by reading current
 	 */
 	function next() {
-		// If we've just passed a newline, increment the line number
+		// If we've just passed a newline update the file metea
 		if (current == "\n") {
-			line++
-			// Reset the column for the new line
-			column = 0
+			// Increment the line number
+			currentFile.line++
+			// Reset the column for the new line, should be 0 as it is set to 1 on the next line
+			currentFile.column = 0
 		}
 
 		// We've got the next character, increment the column
-		column++
+		currentFile.column++
 
 		return current = text[++index]
 	}
@@ -135,12 +141,14 @@ module.exports = function(text, filename) {
 	let tokens = []
 	// Current char index
 	let index = 0
-	// Current file line number
-	let line = 1
-	// Current line column position
-	let column = 1
+	// The full paths of the files used as stack
+	let filestack = []
+	// The current top of the filestack
+	let currentFile = {}
 	// The currently active char
 	let current
+
+	// console.log(text);
 
 	// Loop though the whole file
 	while (index < text.length) {
@@ -153,12 +161,70 @@ module.exports = function(text, filename) {
 
 		// Skip all comments
 		if (peek(0, 2) == "/*") {
-			while (peek(0, 2) != "*/") {
-				next()
-			}
+			// Check if it isn't a special CSSS tag
+			if (peek(3, 9) == "CSSS:FILE") {
+				// Skip the opening tag
+				for (var i = 0; i < 13; i++) {
+					next()
+				}
 
-			// Skip to after the comment
-			next(next())
+				// If we have a path on our hands
+				if (current == '"') {
+					// Will contain the full filepath
+					let path = ""
+
+					// Skip the opening quote
+					next()
+
+					// Gather the path until we encounter a "
+					while (next() != '"') {
+						path += current
+					}
+
+					// Add the new file to the stack
+					filestack.push({
+						path: path,
+						line: 0,
+						column: 0
+					})
+
+					// Add the require length to the current column position
+					currentFile.column += `@require "${path}"`.length
+					// Set the newly added file as the current one
+					currentFile = filestack[filestack.length - 1]
+
+					// Skip the closing tag
+					next(next(next()))
+				}
+				// If it's an closing tag, take the top of the stack
+				else if (peek(0, 5) == "CLOSE") {
+					// Only take the top of the stack if we haven't reached the root
+					if (filestack.length > 1) {
+						filestack.splice(-1, 1)
+					}
+
+					// Set the current active file
+					currentFile = filestack[Math.max(filestack.length - 1, 0)]
+
+					// Skip the CSS comment tail
+					for (var i = 0; i < 8; i++) {
+						next()
+					}
+				}
+				// If it's neither, we have an invalid tag
+				else {
+					print(`Lexer error: Invalid CSSS comment tag found.`, print.ERROR)
+				}
+			}
+			// Otherwise, it's a comment
+			else {
+				while (peek(0, 2) != "*/") {
+					next()
+				}
+
+				// Skip to after the comment
+				next(next())
+			}
 		}
 
 		/// KEYWORD
@@ -347,7 +413,7 @@ module.exports = function(text, filename) {
 
 		// If it matches nothing else, and isn't a whitespace character, throw an error
 		else if (current.charCodeAt(0) != 9 && current.charCodeAt(0) != 10 && current.charCodeAt(0) != 32) {
-			print(`Lexer error: Invalid character "${current}" in ${filename} at line ${line}`, print.ERROR)
+			print(`Lexer error: Invalid character "${current}" in ${filename} at line ${currentFile.line}`, print.ERROR)
 		}
 	}
 

@@ -81,19 +81,20 @@ const util = require('util')
 
 let preprocessor = require("./interpreter/preprocessor.js")
 let lexer = require("./interpreter/lexer.js")
-// let syntact = require("./interpreter/syntax.js")
+// let syntax = require("./interpreter/syntax.js")
 // let execute = require("./interpreter/execute.js")
 
 console.log(
 	util.inspect((
-			lexer(
-				preprocessor(
-					fs.readFileSync("./example.csss").toString(),
-					"example.csss",
-					process.cwd()
-				),
-				"example.csss"
-			)
+			// syntax(
+				lexer(
+					preprocessor(
+						fs.readFileSync("./example.csss").toString(),
+						"example.csss",
+						process.cwd()
+					)
+				)
+			// )
 		),
 		{
 			showHidden: false,

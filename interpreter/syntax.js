@@ -7,14 +7,12 @@
 const validTags = require("./validTags.js")
 
 module.exports = function(tokens, filename) {
-	// Variable containing the whole program
+	// Variable containing the entire program
 	var ast = {
 		type: "program",
 		children: []
 	}
 
-	// Current line in the file
-	let line = 1
 	// Current index in the token stream
 	let index = 0
 

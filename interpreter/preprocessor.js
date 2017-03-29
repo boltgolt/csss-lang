@@ -3,6 +3,14 @@
  * Scans and injects code before it is passed to the lexer
  */
 
+/*
+ * Inserts preprocessor comment tag showing where the code originated
+ *
+ * A @required file starts with /* CSSS:FILE /path/to/filename.css *\/ (without \)
+ * and ends with /* CSSS:FILE END *\/ (without \)
+ */
+
+
 const fs = require("fs")
 
 module.exports = function(text, filename, location) {
@@ -40,6 +48,9 @@ module.exports = function(text, filename, location) {
 			// Remove the first line from the text
 			text = text.substr(text.indexOf("\n"))
 		}
+
+		// Add the comment tag to signal the start of a new file
+		text = `/* CSSS:FILE "${location}/${filename}" */` + text
 
 		// Loop through all characters in the file
 		for (let i = 0; i < text.length; i++) {
@@ -79,6 +90,9 @@ module.exports = function(text, filename, location) {
 				}
 			}
 		}
+
+		// Add the closing file tag
+		text += "/* CSSS:FILE CLOSE */"
 
 		// Return the entire code file
 		return text

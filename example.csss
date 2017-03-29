@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* Should throw recursion error */
-/*@require "example.csss";*/
+/*@require "hm.csss";*/
 
 --width: calc(20vw * 2);
 
