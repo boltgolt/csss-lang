@@ -4,9 +4,9 @@
  */
 
 // All allowed HTML tags
-const validTags = require("./validTags.js")
+const validTags = require("../data/tags.js")
 
-module.exports = function(tokens, filename) {
+module.exports = function(tokens) {
 	// Variable containing the entire program
 	var ast = {
 		type: "program",
@@ -22,18 +22,10 @@ module.exports = function(tokens, filename) {
 	 */
 	function next() {
 		if (index >= tokens.length - 1) {
-			return false;
+			return false
 		}
 		else {
-			token = tokens[++index]
-
-			// Keep up with the line number
-			if (token.type == "line") {
-				line = token.value
-				return next()
-			}
-
-			return token
+			return tokens[++index]
 		}
 	}
 
@@ -79,6 +71,8 @@ module.exports = function(tokens, filename) {
 	 * @return {Bool}                   When true, will quit walking
 	 */
 	function walk(parent, closeFunction) {
+		token = tokens[index]
+
 		// If the token is bad or we've hit the end of the file, quit
 		if (token == false || index >= tokens.length - 1) {
 			return true
@@ -89,16 +83,16 @@ module.exports = function(tokens, filename) {
 			// Create a new block
 			var newBlock = {
 				type: token.value,
-				line: line,
 				left: [],
 				right: [],
 				operation: "",
-				children: []
+				children: [],
+				meta: token.meta
 			}
 
 			// Check if the next node is a (, fail when it's not
 			if (peek(function(token) {token.type != "lpar"})) {
-				log(`Syntax error: Missing opening "(" after ${token.value} statement in ${filename} at line ${line}`, log.ERROR)
+				throwError(`Missing opening "(" after ${token.value} statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
 
@@ -117,7 +111,7 @@ module.exports = function(tokens, filename) {
 
 			// Check that the next node is a {
 			if (peek(function(token) {token.type != "lbrace"})) {
-				log(`Syntax error: Missing opening "{" after ${token.value} statement in ${filename} at line ${line}`, log.ERROR)
+				throwError(`Missing opening "{" after ${token.value} statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
 
@@ -135,13 +129,13 @@ module.exports = function(tokens, filename) {
 			// Create a new block
 			var newBlock = {
 				type: "else",
-				line: line,
-				children: []
+				children: [],
+				meta: token.meta
 			}
 
 			// Check that the next node is a {
 			if (peek(function(token) {token.type != "lbrace"})) {
-				log(`Syntax error: Missing opening "{" after else statement in ${filename} at line ${line}`, log.ERROR)
+				throwError(`Missing opening "{" after else statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
 
@@ -160,8 +154,8 @@ module.exports = function(tokens, filename) {
 			// Get a new par block
 			var newBlock = {
 				type: "par",
-				line: line,
-				children: []
+				children: [],
+				meta: token.meta
 			}
 
 			// Walk though it until we hit the end
@@ -186,9 +180,9 @@ module.exports = function(tokens, filename) {
 				// Create a new node
 				newBlock = {
 					type: "assignment",
-					line: line,
 					name: token.value,
-					right: []
+					right: [],
+					meta: token.meta
 				}
 
 				// Skip the colon
@@ -206,8 +200,8 @@ module.exports = function(tokens, filename) {
 				// Push the mentioned variable to the parent
 				parent.push({
 					type: "variable",
-					line: line,
-					name: token.value
+					name: token.value,
+					meta: token.meta
 				})
 			}
 		}
@@ -217,13 +211,13 @@ module.exports = function(tokens, filename) {
 			// Create a new node
 			var newBlock = {
 				type: "calc",
-				line: line,
-				children: []
+				children: [],
+				meta: token.meta
 			}
 
 			// Check that the next node is a (
 			if (peek(function(token) {token.type != "lpar"})) {
-				log(`Syntax error: Missing opening "{" after calc statement in ${filename} at line ${line}`, log.ERROR)
+				throwError(`Missing opening "{" after calc statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
 
@@ -241,9 +235,9 @@ module.exports = function(tokens, filename) {
 			// Create a new node
 			var newBlock = {
 				type: "property",
-				line: line,
 				name: token.value,
-				children: []
+				children: [],
+				meta: token.meta
 			}
 
 			// Skip the colon
@@ -262,15 +256,15 @@ module.exports = function(tokens, filename) {
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "lbrace"})) {
 			// Check if this is a valid HTML tag
 			if (validTags.indexOf(token.value) == -1) {
-				log(`The identifier ${token.value} (line ${line} in ${filename}) is not a valid HTML5 tag, but is parsed as one`, log.WARN)
+				print(`The identifier ${token.value} (line ${token.meta.line} in ${token.meta.path}) is not a valid HTML5 tag, but is parsed as one`, print.WARN)
 			}
 
 			// Create a new node
 			var newBlock = {
 				type: "element",
-				line: line,
 				name: token.value,
-				children: []
+				children: [],
+				meta: token.meta
 			}
 
 			// Skip the left bracket
@@ -290,8 +284,8 @@ module.exports = function(tokens, filename) {
 		else if (token.type == "identifier" && peek(function(token) {return token.type == "semi"})) {
 			parent.push({
 				type: "value",
-				line: line,
-				value: token.value
+				value: token.value,
+				meta: token.meta
 			})
 		}
 
@@ -300,8 +294,8 @@ module.exports = function(tokens, filename) {
 			// Push the arithmetic operator to the parent
 			parent.push({
 				type: "arithmetic",
-				line: line,
-				value: token.value
+				value: token.value,
+				meta: token.meta
 			})
 		}
 
@@ -310,8 +304,8 @@ module.exports = function(tokens, filename) {
 			// Push the boolean to the parent
 			parent.push({
 				type: "bool",
-				line: line,
-				value: token.value == "true"
+				value: token.value == "true",
+				meta: token.meta
 			})
 		}
 
@@ -320,8 +314,8 @@ module.exports = function(tokens, filename) {
 			// Push the string to the parent
 			parent.push({
 				type: "string",
-				line: line,
-				value: token.value
+				value: token.value,
+				meta: token.meta
 			})
 		}
 
@@ -332,9 +326,9 @@ module.exports = function(tokens, filename) {
 				// Push to the parent with the right unit
 				parent.push({
 					type: "number",
-					line: line,
 					unit: peek(function(token) {return token.value}),
-					value: parseFloat(token.value)
+					value: parseFloat(token.value),
+					meta: token.meta
 				})
 
 				// Skip the identifier we just used as an unit
@@ -344,16 +338,16 @@ module.exports = function(tokens, filename) {
 				// Push the normal float to the parent
 				parent.push({
 					type: "number",
-					line: line,
 					unit: "plain",
-					value: parseFloat(token.value)
+					value: parseFloat(token.value),
+					meta: token.meta
 				})
 			}
 		}
 
 		// We don't know what to do with this
 		else {
-			log(`Unexpected ${token.type} ("${token.value}") found at line ${line} in ${filename}`, log.ERROR)
+			throwError(`Unexpected ${token.type} ("${token.value}") encountered`, token.meta.path, token.meta.line, token.meta.column)
 		}
 	}
 

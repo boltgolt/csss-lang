@@ -50,7 +50,7 @@ module.exports = function(text, filename, location) {
 		}
 
 		// Add the comment tag to signal the start of a new file
-		text = `/* CSSS:FILE "${location}/${filename}" */` + text
+		text = `/* CSSS:FILE "/${location}/${filename}" */` + text
 
 		// Loop through all characters in the file
 		for (let i = 0; i < text.length; i++) {

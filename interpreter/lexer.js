@@ -85,9 +85,9 @@ module.exports = function(text, filename) {
 			type: type,
 			value: value,
 			meta: {
+				path: currentFile.path,
 				line: currentFile.line,
-				column: currentFile.column,
-				path: currentFile.path
+				column: currentFile.column
 			}
 		})
 	}
@@ -184,8 +184,8 @@ module.exports = function(text, filename) {
 					// Add the new file to the stack
 					filestack.push({
 						path: path,
-						line: 0,
-						column: 0
+						line: 1,
+						column: 1
 					})
 
 					// Add the require length to the current column position

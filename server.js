@@ -62,11 +62,6 @@ global.print = function(text, type) {
 
 	// Write it all to console
 	process.stdout.write(`[${h}:${m}:${s}] [${tag}] ${text}\n`)
-
-	// If it was an error, stop execution
-	if (type == print.ERROR) {
-		process.exit()
-	}
 }
 
 // The loglevel constants
@@ -75,18 +70,46 @@ global.print.WARN = "warn"
 global.print.LOG = "log"
 global.print.DEBUG = "debug"
 
+global.throwError = function(errorMsg, path, line, column) {
+	print("An unrecoverable error occurred", print.ERROR)
+
+	let fileLines = fs.readFileSync(path).toString().split("\n")
+
+	let padding = ""
+	for (var i = 0; i < column - 1; i++) {
+		padding += " "
+	}
+
+	process.stdout.write(colors.yellow(`
+	${errorMsg}`))
+
+	process.stdout.write(colors.yellow(colors.italic(`
+	At line ${line} in ${path}`)))
+
+	process.stdout.write(colors.red(`
+
+	${fileLines[line - 1]}`))
+
+	process.stdout.write(colors.red(`
+	${padding}`))
+	process.stdout.write(colors.bold(colors.bgRed(colors.white("^"))))
+	process.stdout.write("\n\n")
+
+	process.exit()
+}
+
 print("Starting CSSS-Server v" + require("./package.json").version, print.LOG)
 
 const util = require('util')
 
 let preprocessor = require("./interpreter/preprocessor.js")
 let lexer = require("./interpreter/lexer.js")
-// let syntax = require("./interpreter/syntax.js")
+let syntax = require("./interpreter/syntax.js")
 // let execute = require("./interpreter/execute.js")
 
 console.log(
 	util.inspect((
-			// syntax(
+			syntax(
 				lexer(
 					preprocessor(
 						fs.readFileSync("./example.csss").toString(),
@@ -94,7 +117,7 @@ console.log(
 						process.cwd()
 					)
 				)
-			// )
+			)
 		),
 		{
 			showHidden: false,
