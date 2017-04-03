@@ -5,9 +5,9 @@
 
 --width: calc(20vw * 2);
 
-@if (--width > 30vw && true) {
+@if (--width > 30vw && !(true)) {
 	h1 {
-		content: calc("Why " + --width + " though?")
+		content: calc("Why " + --width + " though?");
 		/* Should output a calc(40vw + 2px) calc block to CSS */
 		width: calc(--width + 2px);
 		box-sizing: border-box;
@@ -18,11 +18,11 @@
 	}
 }
 
---deep-array: []
---deep-array[-1]: ["one", "two", 3, "four", "five"]
+--deep-array: [];
+--deep-array[-1]: ["one", "two", 3, "four", "five"];
 --index: 0;
 
-ul#list {
+ul#list.class {
 	list-style-type: decimal;
 
 	@while (--index < 6 || !true) {
@@ -34,7 +34,7 @@ ul#list {
 				color: rgb(94,5,198);
 			}
 			@elif (--index == 1) {
-				color: #98E443;
+				color: #98E;
 			}
 			@elif (--index == 2) {
 				color: rgba(67, 132, 228, .73);

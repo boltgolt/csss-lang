@@ -60,6 +60,8 @@ module.exports = function(text, filename, location) {
 				while (text[i] + text[i + 1] != "*/") {
 					i++
 				}
+
+				i++
 			}
 
 			// If we encounter a statement

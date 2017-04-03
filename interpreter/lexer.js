@@ -25,6 +25,7 @@
  * lsqarb       Opening square bracket
  * rsqarb       Closing square bracket
  * semi         Semicolon
+ * inversion    The "not" operator ("!")
  * assign       Either a colon or an equals sign
  * separator    Comma
  *
@@ -51,27 +52,11 @@ const arithmetics = [
 	"^"
 ]
 
-// All allowed logical operators
-const logics = [
-	"&&",
-	"||"
-]
-
 // All units recognised as CSS unit
-const validUnits = [
-	"%",
-	"cm",
-	"em",
-	"ex",
-	"in",
-	"mm",
-	"pc",
-	"pt",
-	"px",
-	"vh",
-	"vw",
-	"vmin"
-]
+const validUnits = require("../data/units.js")
+
+// All valid HTML tags
+const validTags = require("../data/tags.js")
 
 // The function call by the main server file
 module.exports = function(text, filename) {
@@ -194,7 +179,7 @@ module.exports = function(text, filename) {
 					currentFile = filestack[filestack.length - 1]
 
 					// Skip the closing tag
-					next(next(next()))
+					next(next(next(next())))
 				}
 				// If it's an closing tag, take the top of the stack
 				else if (peek(0, 5) == "CLOSE") {
@@ -320,19 +305,20 @@ module.exports = function(text, filename) {
 		}
 
 		/// LOGIC
-		else if (logics.indexOf(peek(0, 2)) != -1) {
+		else if (peek(0, 2) == "&&" || peek(0, 2) == "||") {
 			pushToken("logic", peek(0, 2))
 			next(next())
 		}
-		// Inversions are special
+
+		/// INVERS
 		else if (current == "!") {
-			pushToken("logic", "!")
+			pushToken("inversion", "!")
 			next()
 		}
 
 		/// ASSIGN
 		else if (current == ":" || current == "=") {
-			pushToken("assign", ":")
+			pushToken("assign", current)
 			next()
 		}
 
@@ -370,7 +356,6 @@ module.exports = function(text, filename) {
 			}
 
 			pushToken("class", classname)
-			next()
 		}
 
 		/// IDENTIFIER, BOOL & UNIT
@@ -394,6 +379,9 @@ module.exports = function(text, filename) {
 			}
 			else if (validUnits.indexOf(lowIndentifier) != -1) {
 				pushToken("unit", lowIndentifier)
+			}
+			else if (validTags.indexOf(lowIndentifier) != -1) {
+				pushToken("element", lowIndentifier)
 			}
 			else {
 				pushToken("identifier", identifier)

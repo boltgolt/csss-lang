@@ -70,31 +70,86 @@ global.print.WARN = "warn"
 global.print.LOG = "log"
 global.print.DEBUG = "debug"
 
+/**
+ * Show a nice error in the console and quit
+ * @param  {String} errorMsg A custom error message to let the user know what went wrong, can contain line breaks if needed
+ * @param  {String} path     The path of the CSSS file in which the error occurred
+ * @param  {Int}    line     The line on which it occurred
+ * @param  {Int}    column   The aproximate column on which it occurred
+ */
 global.throwError = function(errorMsg, path, line, column) {
+	// Print the error message with timestamp
 	print("An unrecoverable error occurred", print.ERROR)
 
-	let fileLines = fs.readFileSync(path).toString().split("\n")
+	// Will contain all lines in the file
+	let fileLines = []
+	// Will contain a human readable line string
+	let formalLine
+	// Will contain a human readable path string
+	let formalPath
 
-	let padding = ""
-	for (var i = 0; i < column - 1; i++) {
-		padding += " "
+	// Try to read the files lines, or set to false when that fails
+	try {
+		fileLines = fs.readFileSync(path).toString().split("\n")
+	} catch (e) {
+		fileLines = false
 	}
 
+	// Give the line number if we have one
+	if (!isNaN(line)) {
+		formalLine = "line " + line
+	}
+	// Or let it be known that we have no clue
+	else {
+		formalLine = "an unknown line"
+	}
+
+	// Give the right path
+	if (typeof path == "string") {
+		formalPath = "in" + path
+	}
+	// Or point them in the right direction if we don't have one
+	else {
+		formalPath = "in a file somewhere"
+	}
+
+	// Format the newlines
+	errorMsg = errorMsg.replace(/\n/g, "\n\t")
+
+	// Print the passed error message
 	process.stdout.write(colors.yellow(`
 	${errorMsg}`))
 
+	// Prnt the passed line and path
 	process.stdout.write(colors.yellow(colors.italic(`
-	At line ${line} in ${path}`)))
+	At ${formalLine} ${formalPath}`)))
 
-	process.stdout.write(colors.red(`
+	// If we have the file lines
+	if (fileLines !== false) {
+		// Generate the right padding more the error cursor indicator
+		let padding = ""
+		for (var i = 0; i < column - 1; i++) {
+			padding += " "
+		}
 
-	${fileLines[line - 1]}`))
+		// Get the right line from the file and replace the tabs with spaces
+		let foundLine = fileLines[line - 1].replace(/\t/g, " ")
 
-	process.stdout.write(colors.red(`
+		// Print the line in which the error occurred
+		process.stdout.write(colors.red(`
+
+	${foundLine}`))
+
+		// Print the padding and the cursor indicator
+		process.stdout.write(colors.red(`
 	${padding}`))
-	process.stdout.write(colors.bold(colors.bgRed(colors.white("^"))))
+		process.stdout.write(colors.bold(colors.bgRed(colors.white("^"))))
+	}
+
+	// Add some extra whitespace
 	process.stdout.write("\n\n")
 
+	// Exit the program
 	process.exit()
 }
 
