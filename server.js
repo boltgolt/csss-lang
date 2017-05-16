@@ -167,8 +167,8 @@ console.log(
 			syntax(
 				lexer(
 					preprocessor(
-						fs.readFileSync("./example.csss").toString(),
-						"example.csss",
+						fs.readFileSync("./ex.csss").toString(),
+						"ex.csss",
 						process.cwd()
 					)
 				)

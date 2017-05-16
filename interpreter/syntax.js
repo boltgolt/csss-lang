@@ -11,6 +11,9 @@ const validColors = [
 	"hsla"
 ]
 
+// Constant used to flag the closing function as non-blocking
+const DONTBLOCK = "dontBlock"
+
 module.exports = function(tokens) {
 	// Variable containing the entire program
 	let ast = {
@@ -28,8 +31,7 @@ module.exports = function(tokens) {
 	function next() {
 		if (index >= tokens.length - 1) {
 			return false
-		}
-		else {
+		} else {
 			return tokens[++index]
 		}
 	}
@@ -37,8 +39,8 @@ module.exports = function(tokens) {
 	/**
 	 * Look at the next node in the stream without affecting the current token
 	 * @param  {Function} callback Function to call that returns either true or false, with the peeked node as argument
-	 * @param  {Int}      modifier The amount of nodes to skip, with 0 as the direct neighbour
-	 * @return {Bool}              The return value of the callback
+	 * @param  {Int}	  modifier The amount of nodes to skip, with 0 as the direct neighbour
+	 * @return {Bool}			  The return value of the callback
 	 */
 	function peek(callback, modifier) {
 		if (!modifier) {
@@ -47,8 +49,7 @@ module.exports = function(tokens) {
 
 		if (index >= tokens.length - 1) {
 			return false
-		}
-		else {
+		} else {
 			if (tokens[index + 1 + modifier].type == "line") {
 				return peek(callback, modifier + 1)
 			}
@@ -59,24 +60,40 @@ module.exports = function(tokens) {
 
 	/**
 	 * Keep walking through nodes until closing function matches
-	 * @param  {Object}   parent        The parent object in the ast
+	 * @param  {Object}   parent		The parent object in the ast
 	 * @param  {Function} closeFunction Function that, when returning true, will hand the walking over to the caller
 	 */
 	function walkThrough(parent, closeFunction) {
+		// No clue why, but this needs to be here due to some wierd scoping issue
+		function overwriteParent(newObject) {
+			hardParent = [newObject]
+		}
+
+		let hardParent = parent
+		let lastResult = false
 		next()
-		while (walk(parent, closeFunction) !== true) {
+
+		while (lastResult !== true) {
+			lastResult = walk(hardParent, closeFunction, overwriteParent)
 			next()
 		}
+
+		return hardParent
 	}
 
 	/**
 	 * Parse a the current token
-	 * @param  {Object}   parent        The parent object in the ast
+	 * @param  {Object}   parent		The parent object in the ast
 	 * @param  {Function} closeFunction Function that, when returning true, will hand the walking over to the parent
-	 * @return {Bool}                   When true, will quit walking
+	 * @return {Bool}				   When true, will quit walking
 	 */
-	function walk(parent, closeFunction) {
+	function walk(parent, closeFunction, overwriteParent) {
+		let closeResult = false
 		token = tokens[index]
+
+		console.log();
+		console.log(token.value);
+		console.log(parent);
 
 		// If the token is bad or we've hit the end of the file, quit
 		if (token == false || index >= tokens.length - 1) {
@@ -88,40 +105,36 @@ module.exports = function(tokens) {
 			// Create a new block
 			let newBlock = {
 				type: token.value,
-				left: [],
-				right: [],
-				operation: "",
+				condition: [],
 				children: [],
 				meta: token.meta
 			}
 
 			// Check if the next node is a (, fail when it's not
-			if (peek(function(token) {token.type != "lpar"})) {
+			if (peek(function(token) {
+					token.type != "lpar"
+				})) {
 				throwError(`Missing opening "(" after ${token.value} statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
 
-			// Get everything on the left by walking untill we hit the comparator
-			walkThrough(newBlock.left, function() {
-				return token.type == "comparator"
-			})
-
-			// Set the operation in the block
-			newBlock.operation = token.value
-
 			// Walk until we hit the end of the if argument
-			walkThrough(newBlock.right, function() {
+			newBlock.condition = walkThrough(newBlock.condition, function(token) {
 				return token.type == "rpar"
 			})
 
+			console.log(newBlock.condition);
+
 			// Check that the next node is a {
-			if (peek(function(token) {token.type != "lcurb"})) {
-				throwError(`Missing opening "{" after ${token.value} statement`, token.meta.path, token.meta.line, token.meta.column)
+			if (peek(function(token) {
+					token.type != "lcurb"
+				})) {
+				throwError(`Missing opening "{" after ${newBlock.value} statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
 
 			// Now walk through the whole block until we hit our closing bracket
-			walkThrough(newBlock.children, function() {
+			newBlock.children = walkThrough(newBlock.children, function() {
 				return token.type == "rcurb"
 			})
 
@@ -139,7 +152,9 @@ module.exports = function(tokens) {
 			}
 
 			// Check that the next node is a {
-			if (peek(function(token) {token.type != "lcurb"})) {
+			if (peek(function(token) {
+					token.type != "lcurb"
+				})) {
 				throwError(`Missing opening "{" after else statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
@@ -170,37 +185,6 @@ module.exports = function(tokens) {
 
 			// Push this block to our parent
 			parent.push(newBlock)
-		}
-
-		/// LOGIC
-		else if (token.type == "logic") {
-			// Check if we've had some tokens already, we cant compair things if we didn't
-			if (parent.length == 0) {
-				throwError(`Empty left hand for logical operator "${token.value}"`, token.meta.path, token.meta.line, token.meta.column)
-			}
-
-			// Create a new block with all previous tokens to the left
-			let newBlock = {
-				type: "logic",
-				value: token.value,
-				meta: token.meta,
-				left: parent,
-				right: []
-			}
-
-			// Go through the others and put them on the right
-			walkThrough(newBlock.right, closeFunction)
-
-			// If the right is empty, we can't compare the 2
-			if (newBlock.right == 0) {
-				throwError(`Empty right hand for logical operator "${newBlock.value}"`, token.meta.path, token.meta.line, token.meta.column)
-			}
-
-			// Set ourselfs as the only child
-			parent = [newBlock]
-
-			// Complete the closing function
-			return true
 		}
 
 		/// ARRAY
@@ -236,6 +220,87 @@ module.exports = function(tokens) {
 			parent.push(newBlock)
 		}
 
+		// If we match our parents closing function, hand the waling back to them
+		// Should be at this spot in the elifs because all opening chars are above it
+		else if (closeResult = closeFunction(token)) {
+			if (closeResult !== DONTBLOCK) {
+				return closeResult
+			}
+		}
+
+		/// LOGIC
+		else if (token.type == "logic") {
+			// Check if we've had some tokens already, we cant compair things if we didn't
+			if (parent.length == 0) {
+				throwError(`Empty left hand for logical operator "${token.value}"`, token.meta.path, token.meta.line, token.meta.column)
+			}
+
+			// Create a new block with all previous tokens to the left
+			let newBlock = {
+				type: "logic",
+				value: token.value,
+				meta: token.meta,
+				left: parent,
+				right: []
+			}
+
+			// Go through the others and put them on the right
+			newBlock.right = walkThrough(newBlock.right, function() {
+				if (closeFunction(token)) {
+					return true
+				}
+				return (token.type == "logic") ? DONTBLOCK : false
+			})
+
+			// If the right is empty, we can't compare the 2
+			if (newBlock.right == 0) {
+				throwError(`Empty right hand for logical operator "${newBlock.value}"`, token.meta.path, token.meta.line, token.meta.column)
+			}
+
+			// Set ourselfs as the only child
+			overwriteParent(newBlock)
+
+			// Complete the closing function
+			return true
+		}
+
+		/// COMPARATOR
+		else if (token.type == "comparator") {
+			// Check if we've had some tokens already, we cant compair things if we didn't
+			if (parent.length == 0) {
+				throwError(`Empty left hand for comparator "${token.value}"`, token.meta.path, token.meta.line, token.meta.column)
+			}
+
+			// Create a new block with all previous tokens to the left
+			let newBlock = {
+				type: "comparator",
+				value: token.value,
+				meta: token.meta,
+				left: parent,
+				right: []
+			}
+
+			// Go through the others and put them on the right
+			newBlock.right = walkThrough(newBlock.right, function() {
+				if (closeFunction(token)) {
+					return true
+				}
+				return (token.type == "logic") ? DONTBLOCK : false
+			})
+
+			// If the right is empty, we can't compare the 2
+			if (newBlock.right == 0) {
+				throwError(`Empty right hand for comparator "${newBlock.value}"`, token.meta.path, token.meta.line, token.meta.column)
+			}
+
+			// Set ourselfs as the only child
+			overwriteParent(newBlock)
+
+			// Complete the closing function
+			return true
+		}
+
+
 		/// VARIABLE
 		else if (token.type == "variable") {
 			// Contains the index as a token, or false when there isn't an index
@@ -244,7 +309,9 @@ module.exports = function(tokens) {
 			let originalName = ""
 
 			// If we have a square bracket directly after the variable, we have an array index
-			if (peek(function(token) {return token.type == "lsqarb"})) {
+			if (peek(function(token) {
+					return token.type == "lsqarb"
+				})) {
 				// Init the variables
 				index = []
 				originalName = token.value
@@ -272,12 +339,14 @@ module.exports = function(tokens) {
 			}
 
 			// If the variable is followed by an :, we're assigning
-			if (peek(function(token) {return token.type == "assign"})) {
+			if (peek(function(token) {
+					return token.type == "assign"
+				})) {
 				// Create a new node
 				let newBlock = {
 					type: "assignment",
 					name: token.value,
-					right: [],
+					children: [],
 					meta: token.meta
 				}
 
@@ -291,14 +360,13 @@ module.exports = function(tokens) {
 				next()
 
 				// Walk through everything else until we encounter the semicolon
-				walkThrough(newBlock.right, function() {
+				walkThrough(newBlock.children, function() {
 					return token.type == "semi"
 				})
 
 				// Push this block to our parent
 				parent.push(newBlock)
-			}
-			else {
+			} else {
 				// Create a new block so we can attach the index if needed
 				let newBlock = {
 					type: "variable",
@@ -317,12 +385,6 @@ module.exports = function(tokens) {
 			}
 		}
 
-		// If we match our parents closing function, hand the waling back to them
-		// Should be at this spot in the elifs because all opening chars are above it
-		else if (closeFunction()) {
-			return true
-		}
-
 		/// CALC
 		else if (token.type == "identifier" && token.value == "calc") {
 			// Create a new node
@@ -333,7 +395,9 @@ module.exports = function(tokens) {
 			}
 
 			// Check that the next node is a (
-			if (peek(function(token) {token.type != "lpar"})) {
+			if (peek(function(token) {
+					token.type != "lpar"
+				})) {
 				throwError(`Missing opening "(" after calc statement`, token.meta.path, token.meta.line, token.meta.column)
 			}
 			next()
@@ -383,7 +447,9 @@ module.exports = function(tokens) {
 			while (notOpened) {
 				// Get the next token
 				let nextToken = {}
-				peek(function(token) {nextToken = token})
+				peek(function(token) {
+					nextToken = token
+				})
 
 				switch (nextToken.type) {
 					// If it's a hash, add it as an ID
@@ -396,7 +462,7 @@ module.exports = function(tokens) {
 						next()
 						break;
 
-					// Add the class
+						// Add the class
 					case "class":
 						newBlock.selectors.push({
 							type: "class",
@@ -406,7 +472,7 @@ module.exports = function(tokens) {
 						next()
 						break;
 
-					// If it's in brackets, it should be an attribute
+						// If it's in brackets, it should be an attribute
 					case "lsqarb":
 						// Create a new selector
 						let newSelector = {
@@ -418,7 +484,9 @@ module.exports = function(tokens) {
 						}
 
 						// Check that it is followed by an assign
-						if (peek(function(token) {return token.type != "assign"})) {
+						if (peek(function(token) {
+								return token.type != "assign"
+							})) {
 							throwError(`Malformed attribute selector in element selector`, nextToken.meta.path, nextToken.meta.line, nextToken.meta.column)
 						}
 
@@ -434,13 +502,13 @@ module.exports = function(tokens) {
 						newBlock.selectors.push(newSelector)
 						break;
 
-					// Stop the loop when we have the elements opening bracket
+						// Stop the loop when we have the elements opening bracket
 					case "lcurb":
 						notOpened = false
 						next()
 						break;
 
-					// If it's neither of those, throw an error
+						// If it's neither of those, throw an error
 					default:
 						throwError(`Unexpected ${nextToken.type} in element selector`, nextToken.meta.path, nextToken.meta.line, nextToken.meta.column)
 				}
@@ -456,7 +524,9 @@ module.exports = function(tokens) {
 		}
 
 		/// PROPERTY
-		else if (token.type == "identifier" && peek(function(token) {return token.type == "assign"})) {
+		else if (token.type == "identifier" && peek(function(token) {
+				return token.type == "assign"
+			})) {
 			// Create a new node
 			let newBlock = {
 				type: "property",
@@ -479,7 +549,9 @@ module.exports = function(tokens) {
 
 		/// VALUE
 		// If the next thing is a semicolon, we have a css value
-		else if (token.type == "identifier" && peek(function(token) {return token.type == "semi"})) {
+		else if (token.type == "identifier" && peek(function(token) {
+				return token.type == "semi"
+			})) {
 			parent.push({
 				type: "value",
 				value: token.value,
@@ -522,8 +594,7 @@ module.exports = function(tokens) {
 				],
 				meta: token.meta
 			})
-		}
-		else if (token.type == "identifier" && validColors.indexOf(token.value) != -1) {
+		} else if (token.type == "identifier" && validColors.indexOf(token.value) != -1) {
 			// Create a new color block
 			let newBlock = {
 				type: "color",
@@ -533,7 +604,9 @@ module.exports = function(tokens) {
 			}
 
 			// Check if we have an opening parenthesis
-			if (peek(function(token) {return token.type != "lpar"})) {
+			if (peek(function(token) {
+					return token.type != "lpar"
+				})) {
 				throwError(`Missing opening parenthesis after color declaration`, token.meta.path, token.meta.line, token.meta.column)
 			}
 
@@ -597,19 +670,22 @@ module.exports = function(tokens) {
 		/// NUMBER
 		else if (token.type == "float") {
 			// If the next node is an CSS unit
-			if (peek(function(token) {return token.type == "unit"})) {
+			if (peek(function(token) {
+					return token.type == "unit"
+				})) {
 				// Push to the parent with the right unit
 				parent.push({
 					type: "number",
-					unit: peek(function(token) {return token.value}),
+					unit: peek(function(token) {
+						return token.value
+					}),
 					value: parseFloat(token.value),
 					meta: token.meta
 				})
 
 				// Skip the identifier we just used as an unit
 				next()
-			}
-			else {
+			} else {
 				// Push the normal float to the parent
 				parent.push({
 					type: "number",
@@ -630,6 +706,8 @@ module.exports = function(tokens) {
 	walkThrough(ast.children, function() {
 		return false
 	})
+
+	console.log("\n\n");
 
 	// Return the AST
 	return ast

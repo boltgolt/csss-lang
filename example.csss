@@ -3,7 +3,7 @@
 /* Should throw recursion error */
 /*@require "hm.csss";*/
 
---width: calc(20vw * 2);
+--widt: calc(20vw * 2);
 
 @if (--width > 30vw && !(true)) {
 	h1 {
