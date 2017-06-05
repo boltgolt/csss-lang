@@ -120,9 +120,16 @@ global.throwError = function(errorMsg, path, line, column) {
 	process.stdout.write(colors.yellow(`
 	${errorMsg}`))
 
-	// Prnt the passed line and path
-	process.stdout.write(colors.yellow(colors.italic(`
+	// If we're debugging, print the passed line and path
+	if (config.debug) {
+		process.stdout.write(colors.yellow(colors.italic(`
 	At ${formalLine} ${formalPath}`)))
+	}
+	// If we aren't, print a hint to eneble it
+	else {
+		process.stdout.write(colors.green(colors.italic(`
+	You might get more details if you enable the ${colors.white("debug")} config option`)))
+	}
 
 	// If we have the file lines
 	if (fileLines !== false) {

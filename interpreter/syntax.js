@@ -24,6 +24,15 @@ module.exports = function(tokens) {
 	// Current index in the token stream, negative to make up for incrementing to 0
 	let index = -1
 
+	function passError(msg, token) {
+		if (config.debug) {
+			throwError(msg, token.meta.path, token.meta.line, token.meta.column)
+		}
+		else {
+			throwError(msg)
+		}
+	}
+
 	/**
 	 * Skip to the next token in the stream
 	 * @return {Object} The new current token
@@ -91,10 +100,6 @@ module.exports = function(tokens) {
 		let closeResult = false
 		token = tokens[index]
 
-		console.log();
-		console.log(token.value);
-		console.log(parent);
-
 		// If the token is bad or we've hit the end of the file, quit
 		if (token == false || index >= tokens.length - 1) {
 			return true
@@ -106,15 +111,19 @@ module.exports = function(tokens) {
 			let newBlock = {
 				type: token.value,
 				condition: [],
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Check if the next node is a (, fail when it's not
 			if (peek(function(token) {
-					token.type != "lpar"
+					return token.type != "lpar"
 				})) {
-				throwError(`Missing opening "(" after ${token.value} statement`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Missing opening "(" after ${token.value} statement`, token)
 			}
 			next()
 
@@ -123,13 +132,11 @@ module.exports = function(tokens) {
 				return token.type == "rpar"
 			})
 
-			console.log(newBlock.condition);
-
 			// Check that the next node is a {
 			if (peek(function(token) {
 					token.type != "lcurb"
 				})) {
-				throwError(`Missing opening "{" after ${newBlock.value} statement`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Missing opening "{" after ${newBlock.value} statement`, token)
 			}
 			next()
 
@@ -147,15 +154,19 @@ module.exports = function(tokens) {
 			// Create a new block
 			let newBlock = {
 				type: "else",
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Check that the next node is a {
 			if (peek(function(token) {
 					token.type != "lcurb"
 				})) {
-				throwError(`Missing opening "{" after else statement`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Missing opening "{" after else statement`, token)
 			}
 			next()
 
@@ -174,8 +185,12 @@ module.exports = function(tokens) {
 			// Get a new par block
 			let newBlock = {
 				type: "par",
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Walk through it until we hit the end
@@ -192,8 +207,12 @@ module.exports = function(tokens) {
 			// Create a new block
 			let newBlock = {
 				type: "array",
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Loop until we find the closing tag
@@ -223,6 +242,7 @@ module.exports = function(tokens) {
 		// If we match our parents closing function, hand the waling back to them
 		// Should be at this spot in the elifs because all opening chars are above it
 		else if (closeResult = closeFunction(token)) {
+			console.log(closeResult !== DONTBLOCK);
 			if (closeResult !== DONTBLOCK) {
 				return closeResult
 			}
@@ -232,29 +252,33 @@ module.exports = function(tokens) {
 		else if (token.type == "logic") {
 			// Check if we've had some tokens already, we cant compair things if we didn't
 			if (parent.length == 0) {
-				throwError(`Empty left hand for logical operator "${token.value}"`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Empty left hand for logical operator "${token.value}"`, token)
 			}
 
 			// Create a new block with all previous tokens to the left
 			let newBlock = {
 				type: "logic",
 				value: token.value,
-				meta: token.meta,
 				left: parent,
 				right: []
 			}
 
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
+			}
+
 			// Go through the others and put them on the right
 			newBlock.right = walkThrough(newBlock.right, function() {
+				return (token.type == "logic") ? DONTBLOCK : false
 				if (closeFunction(token)) {
 					return true
 				}
-				return (token.type == "logic") ? DONTBLOCK : false
 			})
 
 			// If the right is empty, we can't compare the 2
 			if (newBlock.right == 0) {
-				throwError(`Empty right hand for logical operator "${newBlock.value}"`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Empty right hand for logical operator "${newBlock.value}"`, token)
 			}
 
 			// Set ourselfs as the only child
@@ -268,29 +292,34 @@ module.exports = function(tokens) {
 		else if (token.type == "comparator") {
 			// Check if we've had some tokens already, we cant compair things if we didn't
 			if (parent.length == 0) {
-				throwError(`Empty left hand for comparator "${token.value}"`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Empty left hand for comparator "${token.value}"`, token)
 			}
 
 			// Create a new block with all previous tokens to the left
 			let newBlock = {
 				type: "comparator",
 				value: token.value,
-				meta: token.meta,
 				left: parent,
 				right: []
 			}
 
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
+			}
+
 			// Go through the others and put them on the right
 			newBlock.right = walkThrough(newBlock.right, function() {
+				console.log(token);
+				return (token.type == "logic") ? DONTBLOCK : false
 				if (closeFunction(token)) {
 					return true
 				}
-				return (token.type == "logic") ? DONTBLOCK : false
 			})
 
 			// If the right is empty, we can't compare the 2
 			if (newBlock.right == 0) {
-				throwError(`Empty right hand for comparator "${newBlock.value}"`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Empty right hand for comparator "${newBlock.value}"`, token)
 			}
 
 			// Set ourselfs as the only child
@@ -326,7 +355,7 @@ module.exports = function(tokens) {
 
 				// If we have nothing, the array index was empty
 				if (index.length == 0) {
-					throwError(`Empty array index found`, token.meta.path, token.meta.line, token.meta.column)
+					passError(`Empty array index found`, token)
 				}
 				// If we have one block, we have a valid index
 				else if (index.length == 1) {
@@ -334,7 +363,7 @@ module.exports = function(tokens) {
 				}
 				// If we have more than 1 block, we have an invalid index
 				else {
-					throwError(`Invalid array index`, token.meta.path, token.meta.line, token.meta.column)
+					passError(`Invalid array index`, token)
 				}
 			}
 
@@ -346,8 +375,12 @@ module.exports = function(tokens) {
 				let newBlock = {
 					type: "assignment",
 					name: token.value,
-					children: [],
-					meta: token.meta
+					children: []
+				}
+
+				// Add more details if we're in debug mode
+				if (config.debug) {
+					newBlock.meta = token.meta
 				}
 
 				// Add index if needed
@@ -370,8 +403,12 @@ module.exports = function(tokens) {
 				// Create a new block so we can attach the index if needed
 				let newBlock = {
 					type: "variable",
-					name: token.value,
-					meta: token.meta
+					name: token.value
+				}
+
+				// Add more details if we're in debug mode
+				if (config.debug) {
+					newBlock.meta = token.meta
 				}
 
 				// Add index if needed
@@ -390,15 +427,19 @@ module.exports = function(tokens) {
 			// Create a new node
 			let newBlock = {
 				type: "calc",
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Check that the next node is a (
 			if (peek(function(token) {
 					token.type != "lpar"
 				})) {
-				throwError(`Missing opening "(" after calc statement`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Missing opening "(" after calc statement`, token)
 			}
 			next()
 
@@ -416,8 +457,12 @@ module.exports = function(tokens) {
 			// Create a new node
 			let newBlock = {
 				type: "inversion",
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			next()
@@ -438,8 +483,12 @@ module.exports = function(tokens) {
 				type: "element",
 				name: token.value,
 				children: [],
-				selectors: [],
-				meta: token.meta
+				selectors: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Keep looping while we haven't seen the opening bracked
@@ -487,7 +536,7 @@ module.exports = function(tokens) {
 						if (peek(function(token) {
 								return token.type != "assign"
 							})) {
-							throwError(`Malformed attribute selector in element selector`, nextToken.meta.path, nextToken.meta.line, nextToken.meta.column)
+							passError(`Malformed attribute selector in element selector`, token)
 						}
 
 						// Skip the assign
@@ -510,7 +559,7 @@ module.exports = function(tokens) {
 
 						// If it's neither of those, throw an error
 					default:
-						throwError(`Unexpected ${nextToken.type} in element selector`, nextToken.meta.path, nextToken.meta.line, nextToken.meta.column)
+						passError(`Unexpected ${nextToken.type} in element selector`, token)
 				}
 			}
 
@@ -531,8 +580,12 @@ module.exports = function(tokens) {
 			let newBlock = {
 				type: "property",
 				name: token.value,
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Skip the colon
@@ -563,7 +616,7 @@ module.exports = function(tokens) {
 		else if (token.type == "hash") {
 			// Test if the string only contains hexadecimal characters
 			if (!/^[0-9A-Fa-f]*$/.test(token.value)) {
-				throwError(`HEX color contains non-hex characters`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`HEX color contains non-hex characters`, token)
 			}
 
 			// Create an array to contain the color codes and a value shorthand
@@ -580,7 +633,7 @@ module.exports = function(tokens) {
 			}
 			// Otherwise, we have an invalid length
 			else {
-				throwError(`Invalid HEX color length`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Invalid HEX color length`, token)
 			}
 
 			// Add the new color as RGB by parsing the hexes as decimals
@@ -599,15 +652,19 @@ module.exports = function(tokens) {
 			let newBlock = {
 				type: "color",
 				name: token.value,
-				children: [],
-				meta: token.meta
+				children: []
+			}
+
+			// Add more details if we're in debug mode
+			if (config.debug) {
+				newBlock.meta = token.meta
 			}
 
 			// Check if we have an opening parenthesis
 			if (peek(function(token) {
 					return token.type != "lpar"
 				})) {
-				throwError(`Missing opening parenthesis after color declaration`, token.meta.path, token.meta.line, token.meta.column)
+				passError(`Missing opening parenthesis after color declaration`, token)
 			}
 
 			// Skip the parenthesis
@@ -698,7 +755,7 @@ module.exports = function(tokens) {
 
 		// We don't know what to do with this
 		else {
-			throwError(`Unexpected ${token.type} ("${token.value}") encountered`, token.meta.path, token.meta.line, token.meta.column)
+			passError(`Unexpected ${token.type} ("${token.value}") encountered`, token)
 		}
 	}
 
