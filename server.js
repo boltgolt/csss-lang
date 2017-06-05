@@ -156,6 +156,8 @@ global.throwError = function(errorMsg, path, line, column) {
 	// Add some extra whitespace
 	process.stdout.write("\n\n")
 
+	console.trace();
+
 	// Exit the program
 	process.exit()
 }

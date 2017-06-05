@@ -24,6 +24,11 @@ module.exports = function(tokens) {
 	// Current index in the token stream, negative to make up for incrementing to 0
 	let index = -1
 
+	/**
+	 * Pass an error to the top level in a nice fashion
+	 * @param  {String} msg   Message describing what went wrong
+	 * @param  {Object} token Token objec to get debug data from when enabled
+	 */
 	function passError(msg, token) {
 		if (config.debug) {
 			throwError(msg, token.meta.path, token.meta.line, token.meta.column)
@@ -31,6 +36,22 @@ module.exports = function(tokens) {
 		else {
 			throwError(msg)
 		}
+	}
+
+	/**
+	 * Add metadata to a new token if needed
+	 * @param  {Object} meta The meta object to add
+	 * @param  {Object} obj  A newly created token
+	 * @return {Object}      The modified token
+	 */
+	function genMeta(meta, obj) {
+		// If the debug option is enabled, add the meta block
+		if (config.debug) {
+			obj.meta = meta
+		}
+
+		// Return the object
+		return obj
 	}
 
 	/**
@@ -43,6 +64,15 @@ module.exports = function(tokens) {
 		} else {
 			return tokens[++index]
 		}
+	}
+
+	/**
+	 * Reverse to the previous token in the stream
+	 * @return {Object} The new current token
+	 */
+	function prev() {
+		index -= 2
+		return next()
 	}
 
 	/**
@@ -107,17 +137,11 @@ module.exports = function(tokens) {
 
 		/// IF & WHILE
 		else if (token.type == "keyword" && (token.value == "if" || token.value == "elif" || token.value == "while")) {
-			// Create a new block
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: token.value,
 				condition: [],
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Check if the next node is a (, fail when it's not
 			if (peek(function(token) {
@@ -152,15 +176,10 @@ module.exports = function(tokens) {
 		/// ELSE
 		else if (token.type == "keyword" && token.value == "else") {
 			// Create a new block
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "else",
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Check that the next node is a {
 			if (peek(function(token) {
@@ -183,20 +202,18 @@ module.exports = function(tokens) {
 		/// PAR
 		else if (token.type == "lpar") {
 			// Get a new par block
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "par",
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Walk through it until we hit the end
 			walkThrough(newBlock.children, function() {
 				return token.type == "rpar"
 			})
+
+			// Back up 1 token to let the parent catch the next exit
+			prev()
 
 			// Push this block to our parent
 			parent.push(newBlock)
@@ -205,15 +222,10 @@ module.exports = function(tokens) {
 		/// ARRAY
 		else if (token.type == "lsqarb") {
 			// Create a new block
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "array",
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Loop until we find the closing tag
 			let notClosed = true
@@ -223,7 +235,12 @@ module.exports = function(tokens) {
 
 				// Run through the array index until we either find a separator or a closing bracket
 				walkThrough(arrayElement, function() {
-					return token.type == "separator" || token.type == "rsqarb"
+					if (token.type == "separator") {
+						return DONTBLOCK
+					}
+					else if (token.type == "rsqarb") {
+						return true
+					}
 				})
 
 				// Stop looping when we find the end of the array
@@ -242,7 +259,6 @@ module.exports = function(tokens) {
 		// If we match our parents closing function, hand the waling back to them
 		// Should be at this spot in the elifs because all opening chars are above it
 		else if (closeResult = closeFunction(token)) {
-			console.log(closeResult !== DONTBLOCK);
 			if (closeResult !== DONTBLOCK) {
 				return closeResult
 			}
@@ -256,24 +272,20 @@ module.exports = function(tokens) {
 			}
 
 			// Create a new block with all previous tokens to the left
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "logic",
 				value: token.value,
 				left: parent,
 				right: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Go through the others and put them on the right
 			newBlock.right = walkThrough(newBlock.right, function() {
-				return (token.type == "logic") ? DONTBLOCK : false
 				if (closeFunction(token)) {
 					return true
 				}
+
+				return (token.type == "logic") ? DONTBLOCK : false
 			})
 
 			// If the right is empty, we can't compare the 2
@@ -296,25 +308,20 @@ module.exports = function(tokens) {
 			}
 
 			// Create a new block with all previous tokens to the left
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "comparator",
 				value: token.value,
 				left: parent,
 				right: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Go through the others and put them on the right
 			newBlock.right = walkThrough(newBlock.right, function() {
-				console.log(token);
-				return (token.type == "logic") ? DONTBLOCK : false
 				if (closeFunction(token)) {
 					return true
 				}
+
+				return (token.type == "logic") ? DONTBLOCK : false
 			})
 
 			// If the right is empty, we can't compare the 2
@@ -372,16 +379,11 @@ module.exports = function(tokens) {
 					return token.type == "assign"
 				})) {
 				// Create a new node
-				let newBlock = {
+				let newBlock = genMeta(token.meta, {
 					type: "assignment",
 					name: token.value,
 					children: []
-				}
-
-				// Add more details if we're in debug mode
-				if (config.debug) {
-					newBlock.meta = token.meta
-				}
+				})
 
 				// Add index if needed
 				if (index !== false) {
@@ -401,15 +403,10 @@ module.exports = function(tokens) {
 				parent.push(newBlock)
 			} else {
 				// Create a new block so we can attach the index if needed
-				let newBlock = {
+				let newBlock = genMeta(token.meta, {
 					type: "variable",
 					name: token.value
-				}
-
-				// Add more details if we're in debug mode
-				if (config.debug) {
-					newBlock.meta = token.meta
-				}
+				})
 
 				// Add index if needed
 				if (index !== false) {
@@ -425,15 +422,10 @@ module.exports = function(tokens) {
 		/// CALC
 		else if (token.type == "identifier" && token.value == "calc") {
 			// Create a new node
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "calc",
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Check that the next node is a (
 			if (peek(function(token) {
@@ -455,15 +447,10 @@ module.exports = function(tokens) {
 		/// INVERSION
 		else if (token.type == "inversion") {
 			// Create a new node
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "inversion",
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			next()
 
@@ -479,17 +466,12 @@ module.exports = function(tokens) {
 		/// ELEMENT
 		else if (token.type == "element") {
 			// Create a new node
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "element",
 				name: token.value,
 				children: [],
 				selectors: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Keep looping while we haven't seen the opening bracked
 			let notOpened = true
@@ -503,34 +485,31 @@ module.exports = function(tokens) {
 				switch (nextToken.type) {
 					// If it's a hash, add it as an ID
 					case "hash":
-						newBlock.selectors.push({
+						newBlock.selectors.push(genMeta(nextToken.meta, {
 							type: "id",
-							name: nextToken.value,
-							meta: nextToken.meta
-						})
+							name: nextToken.value
+						}))
 						next()
 						break;
 
 						// Add the class
 					case "class":
-						newBlock.selectors.push({
+						newBlock.selectors.push(genMeta(nextToken.meta, {
 							type: "class",
-							name: nextToken.value,
-							meta: nextToken.meta
-						})
+							name: nextToken.value
+						}))
 						next()
 						break;
 
 						// If it's in brackets, it should be an attribute
 					case "lsqarb":
 						// Create a new selector
-						let newSelector = {
+						let newSelector = genMeta(nextToken.meta, {
 							type: "attribute",
 							// Skip the previous tag and the opening bracket to get the name
 							name: next(next()).value,
 							children: [],
-							meta: nextToken.meta
-						}
+						})
 
 						// Check that it is followed by an assign
 						if (peek(function(token) {
@@ -577,16 +556,11 @@ module.exports = function(tokens) {
 				return token.type == "assign"
 			})) {
 			// Create a new node
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "property",
 				name: token.value,
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Skip the colon
 			next()
@@ -605,15 +579,27 @@ module.exports = function(tokens) {
 		else if (token.type == "identifier" && peek(function(token) {
 				return token.type == "semi"
 			})) {
-			parent.push({
+			parent.push(genMeta(token.meta, {
 				type: "value",
-				value: token.value,
-				meta: token.meta
-			})
+				value: token.value
+			}))
 		}
 
 		/// COLOR
 		else if (token.type == "hash") {
+			/**
+			 * Add a number wrapper to a rgb color
+			 * @param  {Int}    num The hex number
+			 * @return {Object}     A newly created number object
+			 */
+			function wrapColor(num) {
+				return genMeta(token.meta, {
+					type: "number",
+					unit: "plain",
+					value: parseInt(num, 16)
+				})
+			}
+
 			// Test if the string only contains hexadecimal characters
 			if (!/^[0-9A-Fa-f]*$/.test(token.value)) {
 				passError(`HEX color contains non-hex characters`, token)
@@ -637,28 +623,22 @@ module.exports = function(tokens) {
 			}
 
 			// Add the new color as RGB by parsing the hexes as decimals
-			parent.push({
+			parent.push(genMeta(token.meta, {
 				type: "color",
 				name: "rgb",
 				children: [
-					parseInt(hexes[0], 16),
-					parseInt(hexes[1], 16),
-					parseInt(hexes[2], 16)
-				],
-				meta: token.meta
-			})
+					wrapColor(hexes[0]),
+					wrapColor(hexes[1]),
+					wrapColor(hexes[2])
+				]
+			}))
 		} else if (token.type == "identifier" && validColors.indexOf(token.value) != -1) {
 			// Create a new color block
-			let newBlock = {
+			let newBlock = genMeta(token.meta, {
 				type: "color",
 				name: token.value,
 				children: []
-			}
-
-			// Add more details if we're in debug mode
-			if (config.debug) {
-				newBlock.meta = token.meta
-			}
+			})
 
 			// Check if we have an opening parenthesis
 			if (peek(function(token) {
@@ -678,7 +658,12 @@ module.exports = function(tokens) {
 
 				// Run through the part of the color code until we either get to the start of the next or the end
 				walkThrough(colorElement, function() {
-					return token.type == "separator" || token.type == "rpar"
+					if (token.type == "separator") {
+						return DONTBLOCK
+					}
+					else if (token.type == "rpar") {
+						return true
+					}
 				})
 
 				// Stop looping when we find the end of the color
@@ -697,31 +682,28 @@ module.exports = function(tokens) {
 		/// ARITHMETIC
 		else if (token.type == "arithmetic") {
 			// Push the arithmetic operator to the parent
-			parent.push({
+			parent.push(genMeta(token.meta, {
 				type: "arithmetic",
-				value: token.value,
-				meta: token.meta
-			})
+				value: token.value
+			}))
 		}
 
 		/// BOOL
 		else if (token.type == "bool") {
 			// Push the boolean to the parent
-			parent.push({
+			parent.push(genMeta(token.meta, {
 				type: "bool",
-				value: token.value == "true",
-				meta: token.meta
-			})
+				value: token.value == "true"
+			}))
 		}
 
 		/// STRING
 		else if (token.type == "string") {
 			// Push the string to the parent
-			parent.push({
+			parent.push(genMeta(token.meta, {
 				type: "string",
-				value: token.value,
-				meta: token.meta
-			})
+				value: token.value
+			}))
 		}
 
 		/// NUMBER
@@ -731,25 +713,23 @@ module.exports = function(tokens) {
 					return token.type == "unit"
 				})) {
 				// Push to the parent with the right unit
-				parent.push({
+				parent.push(genMeta(token.meta, {
 					type: "number",
 					unit: peek(function(token) {
 						return token.value
 					}),
-					value: parseFloat(token.value),
-					meta: token.meta
-				})
+					value: parseFloat(token.value)
+				}))
 
 				// Skip the identifier we just used as an unit
 				next()
 			} else {
 				// Push the normal float to the parent
-				parent.push({
+				parent.push(genMeta(token.meta, {
 					type: "number",
 					unit: "plain",
-					value: parseFloat(token.value),
-					meta: token.meta
-				})
+					value: parseFloat(token.value)
+				}))
 			}
 		}
 
