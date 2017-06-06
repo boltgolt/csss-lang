@@ -66,15 +66,20 @@ module.exports = function(text, filename) {
 	 * @param  {String} value The value found in the input
 	 */
 	function pushToken(type, value) {
-		tokens.push({
+		let newToken = {
 			type: type,
-			value: value,
-			meta: {
+			value: value
+		}
+
+		if (config.debug) {
+			newToken.meta = {
 				path: currentFile.path,
 				line: currentFile.line,
 				column: currentFile.column
 			}
-		})
+		}
+
+		tokens.push(newToken)
 	}
 
 	/**

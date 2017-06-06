@@ -106,11 +106,11 @@ global.throwError = function(errorMsg, path, line, column) {
 
 	// Give the right path
 	if (typeof path == "string") {
-		formalPath = "in" + path
+		formalPath = "in " + path
 	}
 	// Or point them in the right direction if we don't have one
 	else {
-		formalPath = "in a file somewhere"
+		formalPath = "in a file"
 	}
 
 	// Format the newlines
@@ -132,7 +132,7 @@ global.throwError = function(errorMsg, path, line, column) {
 	}
 
 	// If we have the file lines
-	if (fileLines !== false) {
+	if (fileLines !== false && !isNaN(line)) {
 		// Generate the right padding more the error cursor indicator
 		let padding = ""
 		for (var i = 0; i < column - 1; i++) {
@@ -155,8 +155,6 @@ global.throwError = function(errorMsg, path, line, column) {
 
 	// Add some extra whitespace
 	process.stdout.write("\n\n")
-
-	console.trace();
 
 	// Exit the program
 	process.exit()

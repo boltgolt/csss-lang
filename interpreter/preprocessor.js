@@ -13,6 +13,8 @@
 
 const fs = require("fs")
 
+const validExtensions = ["css"]
+
 module.exports = function(text, filename, location) {
 	/**
 	 * Search for @requires in the code and give them to the parser
@@ -37,7 +39,7 @@ module.exports = function(text, filename, location) {
 		// If we have too much recursion
 		if (recursionNo == config.get("recursionLimit")) {
 			// TODO: Show all stack paths
-			print("Too much @require recursion in " + filename + ".", print.ERROR)
+			throwError("Too much @require recursion.", location)
 		}
 
 		// Add this file to the stack
@@ -81,7 +83,7 @@ module.exports = function(text, filename, location) {
 
 					// If we have hit the and of the file while searching for the end of the include, stop
 					if (t == text.length) {
-						print("Malformed @require in " + filename + ".", print.ERROR)
+						throwError("Malformed @require (EOF)", location + "/" + filename)
 					}
 
 					// Give the parser the string in the requie and a clone of the stack
@@ -135,13 +137,18 @@ module.exports = function(text, filename, location) {
 					current = string[++index]
 				}
 
-				// TODO: Illegal chars warn
+				// Throw an error if we hit the end of the string without finding the closing tag
+				if (index - 1 == string.length && string[index] !== closing) {
+					throwError("Malformed @require (never ending string)", location + "/" + filename)
+				}
 
-				// TODO: Non-CSSS file warn
+				if (foundFile.indexOf(".") != -1) {
+					let extension = foundFile.toLowerCase().split(".")
+					extension = extension[extension.length - 1]
 
-				// Throw an error if we hit the end of the strin withou finding the closing tag
-				if (index == string.length) {
-					print("Malformed @require in " + filename + ".", print.ERROR)
+					if (validExtensions.indexOf(extension) == -1) {
+						print(`Including required file with non-csss extention (.${extension})`, print.WARN)
+					}
 				}
 
 				// Stop searching for the string
@@ -158,7 +165,7 @@ module.exports = function(text, filename, location) {
 			fileContents = fs.readFileSync(fullPath)
 		} catch (err) {
 			// TODO: Permission erros
-			print("The required file " + fullPath + " does not exist on disk.", print.ERROR)
+			throwError("Required file does not exist on disk", fullPath)
 		}
 
 		// Strip the full path of the filename so only the location remains

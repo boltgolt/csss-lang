@@ -11,8 +11,10 @@ const validColors = [
 	"hsla"
 ]
 
+// Constant used to flag the closing function as blocking
+const FLOW_BLOCK = true
 // Constant used to flag the closing function as non-blocking
-const DONTBLOCK = "dontBlock"
+const FLOW_CONTINUE = "continue"
 
 module.exports = function(tokens) {
 	// Variable containing the entire program
@@ -132,7 +134,7 @@ module.exports = function(tokens) {
 
 		// If the token is bad or we've hit the end of the file, quit
 		if (token == false || index >= tokens.length - 1) {
-			return true
+			return FLOW_BLOCK
 		}
 
 		/// IF & WHILE
@@ -236,10 +238,10 @@ module.exports = function(tokens) {
 				// Run through the array index until we either find a separator or a closing bracket
 				walkThrough(arrayElement, function() {
 					if (token.type == "separator") {
-						return DONTBLOCK
+						return FLOW_CONTINUE
 					}
 					else if (token.type == "rsqarb") {
-						return true
+						return FLOW_BLOCK
 					}
 				})
 
@@ -259,7 +261,7 @@ module.exports = function(tokens) {
 		// If we match our parents closing function, hand the waling back to them
 		// Should be at this spot in the elifs because all opening chars are above it
 		else if (closeResult = closeFunction(token)) {
-			if (closeResult !== DONTBLOCK) {
+			if (closeResult !== FLOW_CONTINUE) {
 				return closeResult
 			}
 		}
@@ -282,10 +284,10 @@ module.exports = function(tokens) {
 			// Go through the others and put them on the right
 			newBlock.right = walkThrough(newBlock.right, function() {
 				if (closeFunction(token)) {
-					return true
+					return FLOW_BLOCK
 				}
 
-				return (token.type == "logic") ? DONTBLOCK : false
+				return (token.type == "logic") ? FLOW_CONTINUE : false
 			})
 
 			// If the right is empty, we can't compare the 2
@@ -297,7 +299,7 @@ module.exports = function(tokens) {
 			overwriteParent(newBlock)
 
 			// Complete the closing function
-			return true
+			return FLOW_BLOCK
 		}
 
 		/// COMPARATOR
@@ -318,10 +320,10 @@ module.exports = function(tokens) {
 			// Go through the others and put them on the right
 			newBlock.right = walkThrough(newBlock.right, function() {
 				if (closeFunction(token)) {
-					return true
+					return FLOW_BLOCK
 				}
 
-				return (token.type == "logic") ? DONTBLOCK : false
+				return (token.type == "logic") ? FLOW_CONTINUE : false
 			})
 
 			// If the right is empty, we can't compare the 2
@@ -333,7 +335,7 @@ module.exports = function(tokens) {
 			overwriteParent(newBlock)
 
 			// Complete the closing function
-			return true
+			return FLOW_BLOCK
 		}
 
 
@@ -659,10 +661,10 @@ module.exports = function(tokens) {
 				// Run through the part of the color code until we either get to the start of the next or the end
 				walkThrough(colorElement, function() {
 					if (token.type == "separator") {
-						return DONTBLOCK
+						return FLOW_CONTINUE
 					}
 					else if (token.type == "rpar") {
-						return true
+						return FLOW_BLOCK
 					}
 				})
 
