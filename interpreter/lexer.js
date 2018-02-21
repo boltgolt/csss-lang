@@ -138,8 +138,6 @@ module.exports = function(text, filename) {
 	// The currently active char
 	let current
 
-	// console.log(text);
-
 	// Loop though the whole file
 	while (index < text.length) {
 		current = text[index]

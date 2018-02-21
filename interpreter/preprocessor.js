@@ -6,14 +6,18 @@
 /*
  * Inserts preprocessor comment tag showing where the code originated
  *
- * A @required file starts with /* CSSS:FILE /path/to/filename.css *\/ (without \)
- * and ends with /* CSSS:FILE END *\/ (without \)
+ * A @required file starts with /* CSSS:FILE /path/to/filename.css *\/
+ * and ends with /* CSSS:FILE END *\/
+ *
+ * NOTE: The backslaches in the closing tags above are only to escape this comment and arent used by the script itself.
  */
 
 
+// Import the filesystem module
 const fs = require("fs")
 
-const validExtensions = ["css"]
+// Only allow import of files with this extension
+const validExtensions = ["csss"]
 
 module.exports = function(text, filename, location) {
 	/**

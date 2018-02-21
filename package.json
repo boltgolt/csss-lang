@@ -1,13 +1,12 @@
 {
-  "name": "csss-server",
+  "name": "csss-lang",
   "version": "0.1.0",
-  "description": "A CSSS HTTP server",
-  "main": "server.js",
+  "description": "A CSS-based scripting language interpreter ",
+  "main": "index.js",
   "author": "Lem Severein <lem@tesler.nl>",
   "license": "MIT",
   "dependencies": {
     "colors": "^1.1.2",
-    "config": "^1.25.1",
-    "express": "^4.14.0"
+    "config": "^1.25.1"
   }
 }

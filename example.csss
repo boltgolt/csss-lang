@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /* Should throw recursion error */
-/*@require "hm.csss";*/
+/* @require "example.csss"; */
 
---widt: calc(20vw * 2);
+--width: calc(20vw * 2);
 
 @if (--width > 30vw && !(true)) {
 	h1 {
@@ -36,14 +36,8 @@ ul#list.class {
 			@elif (--index == 1) {
 				color: #98E;
 			}
-			@elif (--index == 2) {
-				color: rgba(67, 132, 228, .73);
-			}
-			@elif (--index == 3) {
-				color: hsla(215,74%,57%,.73);
-			}
 			@else {
-				color: hsl(309,73%,56%);
+				color: rgba(67, 132, 228, .73);
 			}
 		}
 

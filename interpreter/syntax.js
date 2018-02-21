@@ -6,9 +6,7 @@
 // All colors allowed with the same xx(x,x,x,x) format
 const validColors = [
 	"rgb",
-	"rgba",
-	"hsl",
-	"hsla"
+	"rgba"
 ]
 
 // Constant used to flag the closing function as blocking

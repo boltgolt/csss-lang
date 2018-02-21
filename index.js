@@ -157,7 +157,7 @@ global.throwError = function(errorMsg, path, line, column) {
 print("CSSS-Lang interpreter v" + require("./package.json").version, print.LOG)
 
 
-const util = require('util')
+const util = require("util")
 
 let preprocessor = require("./interpreter/preprocessor.js")
 let lexer = require("./interpreter/lexer.js")
@@ -168,10 +168,11 @@ let lastTime = Date.now()
 
 // Run the preprocessor
 let lastResult = preprocessor(
-	fs.readFileSync("./ex.csss").toString(),
-	"ex.csss",
+	fs.readFileSync("./example.csss").toString(),
+	"example.csss",
 	process.cwd()
 )
+
 print("Preprocessor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
 
 // Run the lexer
@@ -179,30 +180,31 @@ lastTime = Date.now()
 lastResult = lexer(lastResult)
 print("Lexer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
 
+
 // Run the syntaxer
 lastTime = Date.now()
 lastResult = syntax(lastResult)
 print("Syntaxer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
-
-console.log("\n");
-console.log(
-	util.inspect((
-			lastResult
-		),
-		{
-			showHidden: false,
-			depth: null,
-			maxArrayLength: null,
-			breakLength: 60
-		}
-	)
-)
-console.log("\n\n");
-
-// Run the executor
-lastTime = Date.now()
-lastResult = execute(lastResult)
-print("Executor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
+//
+// console.log("\n");
+// console.log(
+// 	util.inspect((
+// 			lastResult
+// 		),
+// 		{
+// 			showHidden: false,
+// 			depth: null,
+// 			maxArrayLength: null,
+// 			breakLength: 60
+// 		}
+// 	)
+// )
+// console.log("\n\n");
+//
+// // Run the executor
+// lastTime = Date.now()
+// lastResult = execute(lastResult)
+// print("Executor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
 
 console.log(
 	util.inspect((
