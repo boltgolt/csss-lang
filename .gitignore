@@ -1,3 +1,6 @@
 node_modules
 config/local.json5
 npm-debug.log
+
+example.csss
+output

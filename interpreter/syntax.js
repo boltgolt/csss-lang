@@ -29,7 +29,7 @@ module.exports = function(tokens) {
 	/**
 	 * Pass an error to the top level in a nice fashion
 	 * @param  {String} msg   Message describing what went wrong
-	 * @param  {Object} token Token objec to get debug data from when enabled
+	 * @param  {Object} token Token object to get debug data from when enabled
 	 */
 	function passError(msg, token) {
 		if (config.debug) {
@@ -525,8 +525,13 @@ module.exports = function(tokens) {
 
 						// Go through all tokens until we hit the closing bracket
 						walkThrough(newSelector.children, function() {
-							return token.type == "rsqarb"
+							if (token.type == "rsqarb") {
+								return FLOW_BLOCK
+							}
 						})
+
+						// Reverse one to get back into the flow
+						prev()
 
 						// Add the selector to the block
 						newBlock.selectors.push(newSelector)
@@ -548,6 +553,8 @@ module.exports = function(tokens) {
 			walkThrough(newBlock.children, function() {
 				return token.type == "rcurb"
 			})
+
+			console.log(token);
 
 			// Push this block to our parent
 			parent.push(newBlock)
@@ -745,8 +752,6 @@ module.exports = function(tokens) {
 	walkThrough(ast.children, function() {
 		return false
 	})
-
-	console.log("\n\n");
 
 	// Return the AST
 	return ast

@@ -1,15 +1,9 @@
 // Required packages
-const express = require("express")
 const colors = require("colors/safe")
 const fs = require("fs")
 
 // Load the configuration file
 global.config = require("config")
-
-// Init express app
-let app = express()
-
-let logLevel = 3
 
 /**
  * Send a message to the console
@@ -33,31 +27,31 @@ global.print = function(text, type) {
 
 	// If the type is debug, check if we should log it, and return a nice colored tag if we do
 	if (type == print.DEBUG) {
-		if (logLevel < 3) {
+		if (config.logLevel < 3) {
 			return
 		}
 
-		tag = colors.cyan("DEBG")
+		tag = colors.cyan("D")
 	}
 	// Idem dito for the LOG log level
 	else if (type == print.LOG) {
-		if (logLevel < 2) {
+		if (config.logLevel < 2) {
 			return
 		}
 
-		tag = "LOGN"
+		tag = "L"
 	}
 	// Idem dito for the WARN log level
 	else if (type == print.WARN) {
-		if (logLevel < 1) {
+		if (config.logLevel < 1) {
 			return
 		}
 
-		tag = colors.yellow("WARN")
+		tag = colors.yellow("W")
 	}
 	// Errors will always be logged
 	else {
-		tag = colors.red("ERRR")
+		tag = colors.red("E")
 	}
 
 	// Write it all to console
@@ -160,26 +154,59 @@ global.throwError = function(errorMsg, path, line, column) {
 	process.exit()
 }
 
-print("Starting CSSS-Server v" + require("./package.json").version, print.LOG)
+print("CSSS-Lang interpreter v" + require("./package.json").version, print.LOG)
+
 
 const util = require('util')
 
 let preprocessor = require("./interpreter/preprocessor.js")
 let lexer = require("./interpreter/lexer.js")
 let syntax = require("./interpreter/syntax.js")
-// let execute = require("./interpreter/execute.js")
+let execute = require("./interpreter/executor.js")
+
+let lastTime = Date.now()
+
+// Run the preprocessor
+let lastResult = preprocessor(
+	fs.readFileSync("./ex.csss").toString(),
+	"ex.csss",
+	process.cwd()
+)
+print("Preprocessor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
+
+// Run the lexer
+lastTime = Date.now()
+lastResult = lexer(lastResult)
+print("Lexer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
+
+// Run the syntaxer
+lastTime = Date.now()
+lastResult = syntax(lastResult)
+print("Syntaxer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
+
+console.log("\n");
+console.log(
+	util.inspect((
+			lastResult
+		),
+		{
+			showHidden: false,
+			depth: null,
+			maxArrayLength: null,
+			breakLength: 60
+		}
+	)
+)
+console.log("\n\n");
+
+// Run the executor
+lastTime = Date.now()
+lastResult = execute(lastResult)
+print("Executor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
 
 console.log(
 	util.inspect((
-			syntax(
-				lexer(
-					preprocessor(
-						fs.readFileSync("./ex.csss").toString(),
-						"ex.csss",
-						process.cwd()
-					)
-				)
-			)
+			lastResult
 		),
 		{
 			showHidden: false,
