@@ -17,6 +17,7 @@
  * unit         A CSS unit
  * identifier   All words that do not match any of the above
  * hash         Either a hex color value or an ID
+ * element      A HTML element tag
  *
  * lpar         Opening parenthesis
  * rpar         Closing parenthesis
@@ -98,7 +99,9 @@ module.exports = function(text, filename) {
 		// We've got the next character, increment the column
 		currentFile.column++
 
-		return current = text[++index]
+		// Increment the current character
+		current = text[++index]
+		return current
 	}
 
 	/**
@@ -149,7 +152,7 @@ module.exports = function(text, filename) {
 
 		// Skip all comments
 		if (peek(0, 2) == "/*") {
-			// Check if it isn't a special CSSS tag
+			// Check if it is a special CSSS tag
 			if (peek(3, 9) == "CSSS:FILE") {
 				// Skip the opening tag
 				for (var i = 0; i < 13; i++) {
@@ -195,7 +198,7 @@ module.exports = function(text, filename) {
 					currentFile = filestack[Math.max(filestack.length - 1, 0)]
 
 					// Skip the CSS comment tail
-					for (var i = 0; i < 8; i++) {
+					for (var t = 0; t < 8; t++) {
 						next()
 					}
 				}
@@ -361,11 +364,11 @@ module.exports = function(text, filename) {
 			pushToken("class", classname)
 		}
 
-		/// IDENTIFIER, BOOL & UNIT
+		/// IDENTIFIER, BOOL, UNIT & ELEMENT
 		else if (/[a-zA-Z%0-9-]/.test(current)) {
 			// Can sometimes match undefined, skip those
 			if (typeof current == "undefined") {
-				continue
+				continue;
 			}
 
 			let identifier = current

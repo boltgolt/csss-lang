@@ -154,6 +154,11 @@ global.throwError = function(errorMsg, path, line, column) {
 	process.exit()
 }
 
+function getTime() {
+	let hrTime = process.hrtime()
+	return Math.round((hrTime[0] * 1000000 + hrTime[1]) / 10000)
+}
+
 print("CSSS-Lang interpreter v" + require("./package.json").version, print.LOG)
 
 
@@ -163,30 +168,39 @@ let preprocessor = require("./interpreter/preprocessor.js")
 let lexer = require("./interpreter/lexer.js")
 let syntax = require("./interpreter/syntax.js")
 let execute = require("./interpreter/executor.js")
+let generate = require("./interpreter/generator.js")
 
-let lastTime = Date.now()
+let lastTime = getTime()
 
 // Run the preprocessor
 let lastResult = preprocessor(
-	fs.readFileSync("./example.csss").toString(),
-	"example.csss",
+	fs.readFileSync("./in.csss").toString(),
+	"in.csss",
 	process.cwd()
 )
 
-print("Preprocessor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
+print("Preprocessor done in " + colors.cyan.bold((getTime() - lastTime) / 100 + "ms"), print.DEBUG)
 
 // Run the lexer
-lastTime = Date.now()
+lastTime = getTime()
 lastResult = lexer(lastResult)
-print("Lexer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
-
+print("Lexer done in " + colors.cyan.bold((getTime() - lastTime) / 100 + "ms"), print.DEBUG)
 
 // Run the syntaxer
-lastTime = Date.now()
+lastTime = getTime()
 lastResult = syntax(lastResult)
-print("Syntaxer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
-//
-// console.log("\n");
+print("Syntaxer done in " + colors.cyan.bold((getTime() - lastTime) / 100 + "ms"), print.DEBUG)
+
+// Run the executor
+lastTime = getTime()
+lastResult = execute(lastResult)
+print("Executor done in " + colors.cyan.bold((getTime() - lastTime) / 100 + "ms"), print.DEBUG)
+
+lastTime = getTime()
+lastResult = generate(lastResult)
+print("Generator done in " + colors.cyan.bold((getTime() - lastTime) / 100 + "ms"), print.DEBUG)
+
+console.log(lastResult)
 // console.log(
 // 	util.inspect((
 // 			lastResult
@@ -199,22 +213,3 @@ print("Syntaxer done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), prin
 // 		}
 // 	)
 // )
-// console.log("\n\n");
-//
-// // Run the executor
-// lastTime = Date.now()
-// lastResult = execute(lastResult)
-// print("Executor done in " + colors.cyan.bold(Date.now() - lastTime + "ms"), print.DEBUG)
-
-console.log(
-	util.inspect((
-			lastResult
-		),
-		{
-			showHidden: false,
-			depth: null,
-			maxArrayLength: null,
-			breakLength: 60
-		}
-	)
-)

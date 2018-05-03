@@ -81,7 +81,7 @@ module.exports = function(text, filename, location) {
 					// Loop though the whole statement until we hit the closing semicolon, save the end char location in var t
 					for (; t < text.length; t++) {
 						if (text[t] == ";") {
-							break
+							break;
 						}
 					}
 
@@ -156,7 +156,7 @@ module.exports = function(text, filename, location) {
 				}
 
 				// Stop searching for the string
-				break
+				break;
 			}
 		}
 

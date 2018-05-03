@@ -24,6 +24,9 @@ module.exports = function(tokens) {
 	// Current index in the token stream, negative to make up for incrementing to 0
 	let index = -1
 
+	// Add an End Of File token
+	tokens.push({type: "eof"})
+
 	/**
 	 * Pass an error to the top level in a nice fashion
 	 * @param  {String} msg   Message describing what went wrong
@@ -62,7 +65,8 @@ module.exports = function(tokens) {
 		if (index >= tokens.length - 1) {
 			return false
 		} else {
-			return tokens[++index]
+			token = tokens[++index]
+			return tokens[index]
 		}
 	}
 
@@ -131,7 +135,12 @@ module.exports = function(tokens) {
 		token = tokens[index]
 
 		// If the token is bad or we've hit the end of the file, quit
-		if (token == false || index >= tokens.length - 1) {
+		if (token == false || index > tokens.length - 1) {
+			return FLOW_BLOCK
+		}
+
+		// If we have a closing token and it is the last in the list, quit
+		if (["semi"].indexOf(token.type) != -1 && index > tokens.length - 2) {
 			return FLOW_BLOCK
 		}
 
@@ -158,7 +167,7 @@ module.exports = function(tokens) {
 
 			// Check that the next node is a {
 			if (peek(function(token) {
-					token.type != "lcurb"
+					return token.type != "lcurb"
 				})) {
 				passError(`Missing opening "{" after ${newBlock.value} statement`, token)
 			}
@@ -183,7 +192,7 @@ module.exports = function(tokens) {
 
 			// Check that the next node is a {
 			if (peek(function(token) {
-					token.type != "lcurb"
+					return token.type != "lcurb"
 				})) {
 				passError(`Missing opening "{" after else statement`, token)
 			}
@@ -258,6 +267,9 @@ module.exports = function(tokens) {
 
 		// If we match our parents closing function, hand the waling back to them
 		// Should be at this spot in the elifs because all opening chars are above it
+		//
+		// Looks like really bad code but it does work
+		// jshint -W084
 		else if (closeResult = closeFunction(token)) {
 			if (closeResult !== FLOW_CONTINUE) {
 				return closeResult
@@ -399,9 +411,13 @@ module.exports = function(tokens) {
 					return token.type == "semi"
 				})
 
+				// Prevent the next token from being skiped
+				prev()
+
 				// Push this block to our parent
 				parent.push(newBlock)
-			} else {
+			}
+			else {
 				// Create a new block so we can attach the index if needed
 				let newBlock = genMeta(token.meta, {
 					type: "variable",
@@ -429,7 +445,7 @@ module.exports = function(tokens) {
 
 			// Check that the next node is a (
 			if (peek(function(token) {
-					token.type != "lpar"
+					return token.type != "lpar"
 				})) {
 				passError(`Missing opening "(" after calc statement`, token)
 			}
@@ -492,7 +508,7 @@ module.exports = function(tokens) {
 						next()
 						break;
 
-						// Add the class
+					// Add the class
 					case "class":
 						newBlock.selectors.push(genMeta(nextToken.meta, {
 							type: "class",
@@ -501,7 +517,7 @@ module.exports = function(tokens) {
 						next()
 						break;
 
-						// If it's in brackets, it should be an attribute
+					// If it's in brackets, it should be an attribute
 					case "lsqarb":
 						// Create a new selector
 						let newSelector = genMeta(nextToken.meta, {
@@ -535,13 +551,13 @@ module.exports = function(tokens) {
 						newBlock.selectors.push(newSelector)
 						break;
 
-						// Stop the loop when we have the elements opening bracket
+					// Stop the loop when we have the elements opening bracket
 					case "lcurb":
 						notOpened = false
 						next()
 						break;
 
-						// If it's neither of those, throw an error
+					// If it's neither of those, throw an error
 					default:
 						passError(`Unexpected ${nextToken.type} in element selector`, token)
 				}
@@ -551,8 +567,6 @@ module.exports = function(tokens) {
 			walkThrough(newBlock.children, function() {
 				return token.type == "rcurb"
 			})
-
-			console.log(token);
 
 			// Push this block to our parent
 			parent.push(newBlock)
@@ -577,6 +591,9 @@ module.exports = function(tokens) {
 				return token.type == "semi"
 			})
 
+			// Don't pass over the next token
+			prev()
+
 			// Push this block to our parent
 			parent.push(newBlock)
 		}
@@ -599,7 +616,7 @@ module.exports = function(tokens) {
 			 * @param  {Int}    num The hex number
 			 * @return {Object}     A newly created number object
 			 */
-			function wrapColor(num) {
+			let wrapColor = function(num) {
 				return genMeta(token.meta, {
 					type: "number",
 					unit: "plain",
@@ -746,9 +763,9 @@ module.exports = function(tokens) {
 		}
 	}
 
-	// Walk through the entire node list
-	walkThrough(ast.children, function() {
-		return false
+	// Walk through the entire node list until we hit the End Of File
+	walkThrough(ast.children, function(token) {
+		return token.type == "eof"
 	})
 
 	// Return the AST
