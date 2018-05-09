@@ -77,6 +77,7 @@ module.exports = function(ast, filename) {
 				case "value":
 					childString = child.value
 					break;
+
 				// Add the unit to numbers
 				case "number":
 					// Do not add an unit to plain numbers
@@ -87,6 +88,7 @@ module.exports = function(ast, filename) {
 						childString = child.value + child.unit
 					}
 					break;
+
 				// Encode the colors as full RGB/other strings
 				case "color":
 					// Loop though every number node in the color and format it
@@ -102,7 +104,25 @@ module.exports = function(ast, filename) {
 					// Add the color type, and start/end tags
 					childString = child.name + "(" + childString + ")"
 					break;
+
+				// Try to get the value of the variable from memory
+				case "variable":
+					if (typeof variables[child.name] == "object") {
+						childString = solveStyle(variables[child.name])
+					}
+					else {
+						passError(`Unset variable ${child.name}`)
+					}
+					break;
+
+				// Should never be encountered
+				case "bool":
+					childString = child.value ? "1" : "0"
+					print("Boolean to integer conversion in property", print.WARN)
+					break;
+
 				default:
+					console.error("UNKNOWN SOLVE STYLE ", child)
 			}
 
 			// Add this trimmed string to the output
@@ -121,9 +141,33 @@ module.exports = function(ast, filename) {
 	function getReturnValue(fullBlock) {
 		// Get the first token in the block
 		block = fullBlock[0]
-		console.log(block);
 
+		// Go though the possible types to resolve
 		switch (block.type) {
+			// We have a bare variable
+			case "variable":
+				// Check if the variable has been set
+				if (typeof variables[block.name] != "object") 	passError(`Unset variable ${block.name}`)
+				// Check if the variable is usable (it can only contain 1 value)
+				if (variables[block.name].length != 1)			passError(`Unresolvable variable ${block.name} with value "${solveStyle(variables[block.name])}"`)
+
+				// Get the value node
+				let cont = variables[block.name][0]
+
+				// Match the node with a type for boolean conversion
+				switch (cont.type) {
+					// Pass real booleans directly
+					case "bool":
+						return cont.value
+						break;
+					// Only use the number 1 as truthy, without looking at the unit
+					case "number":
+						return cont.value == 1
+						break;
+					default:
+				}
+
+				break;
 			case "comparator":
 				console.log("sd");
 				break;
@@ -151,13 +195,13 @@ module.exports = function(ast, filename) {
 	function run(block, parent) {
 		/// IF
 		if (block.type == "if") {
+			console.log(block);
 			let condition = getReturnValue(block.condition)
 
 			if (condition) {
 				runThrough(block.children)
 			}
 
-			console.log(condition);
 		}
 
 		/// ELEMENT
@@ -200,6 +244,12 @@ module.exports = function(ast, filename) {
 		else if (block.type == "property") {
 			// Set the style of the parent with the computed style
 			parent.styles[block.name] = solveStyle(block.children)
+		}
+
+		/// ASSIGNMENT
+		else if (block.type == "assignment") {
+			// Add the children of the variable to memory
+			variables[block.name] = block.children
 		}
 
 		else {

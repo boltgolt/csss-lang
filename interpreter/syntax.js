@@ -166,17 +166,17 @@ module.exports = function(tokens) {
 			})
 
 			// Check that the next node is a {
-			if (peek(function(token) {
-					return token.type != "lcurb"
-				})) {
+			if (token.type != "lcurb") {
 				passError(`Missing opening "{" after ${newBlock.value} statement`, token)
 			}
-			next()
 
 			// Now walk through the whole block until we hit our closing bracket
 			newBlock.children = walkThrough(newBlock.children, function() {
 				return token.type == "rcurb"
 			})
+
+			// Reverse 1 node so we don't skip the next
+			prev()
 
 			// Push this block to our parent
 			parent.push(newBlock)
@@ -717,7 +717,7 @@ module.exports = function(tokens) {
 			// Push the boolean to the parent
 			parent.push(genMeta(token.meta, {
 				type: "bool",
-				value: token.value == "true"
+				value: token.value
 			}))
 		}
 
