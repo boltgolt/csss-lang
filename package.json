@@ -1,9 +1,9 @@
 {
   "name": "csss-lang",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A CSS-based scripting language interpreter ",
   "main": "index.js",
-  "author": "Lem Severein <lem@tesler.nl>",
+  "author": "Boltgolt <boltgolt@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "colors": "^1.1.2",

@@ -757,6 +757,11 @@ module.exports = function(tokens) {
 			}
 		}
 
+		// Colapse loop if we have an EOF
+		else if (token.type == "eof") {
+			return true
+		}
+
 		// We don't know what to do with this
 		else {
 			passError(`Unexpected ${token.type} ("${token.value}") encountered`, token)

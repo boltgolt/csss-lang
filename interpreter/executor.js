@@ -79,7 +79,13 @@ module.exports = function(ast, filename) {
 					break;
 				// Add the unit to numbers
 				case "number":
-					childString = child.value + child.unit
+					// Do not add an unit to plain numbers
+					if (child.unit == "plain") {
+						childString = child.value.toString()
+					}
+					else {
+						childString = child.value + child.unit
+					}
 					break;
 				// Encode the colors as full RGB/other strings
 				case "color":
@@ -202,7 +208,7 @@ module.exports = function(ast, filename) {
 		}
 	}
 
-	// Start wroking through the tree
+	// Start working through the tree
 	runThrough(ast.children, dom)
 
 	// Return the DOM
