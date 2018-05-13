@@ -568,6 +568,9 @@ module.exports = function(tokens) {
 				return token.type == "rcurb"
 			})
 
+			// Prenevt the closing curly bracket from being skipped
+			prev()
+
 			// Push this block to our parent
 			parent.push(newBlock)
 		}

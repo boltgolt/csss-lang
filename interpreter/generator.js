@@ -34,6 +34,11 @@ module.exports = function(tree, filename) {
 	 * @return {String}         The resulting HTML string
 	 */
 	function run(element) {
+		// Ignore the if meta tag
+		if (element.tag == "if") {
+			return runThrough(element)
+		}
+
 		// Start the opening tag
 		let returnString = `<${element.tag}`
 
@@ -42,8 +47,13 @@ module.exports = function(tree, filename) {
 			returnString += ` ${attribute}="${element.attributes[attribute]}"`
 		}
 
-		// Check if there are styles to be insterted
-		if (Object.keys(element.styles).length > 0) {
+		// Get the amount of styles to apply
+		let styles = Object.keys(element.styles).length
+		// Subtract one if the content style is one of them
+		if ("content" in element.styles) styles--
+
+		// Check if there are styles that need to be insterted
+		if (styles > 0) {
 			// Open a style attribute
 			returnString += ` style="`
 

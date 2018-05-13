@@ -147,26 +147,18 @@ module.exports = function(ast, filename) {
 			// We have a bare variable
 			case "variable":
 				// Check if the variable has been set
-				if (typeof variables[block.name] != "object") 	passError(`Unset variable ${block.name}`)
+				if (typeof variables[block.name] != "object") 	passError(`Unset variable ${block.name}`, block.meta)
 				// Check if the variable is usable (it can only contain 1 value)
-				if (variables[block.name].length != 1)			passError(`Unresolvable variable ${block.name} with value "${solveStyle(variables[block.name])}"`)
+				if (variables[block.name].length != 1)			passError(`Unresolvable variable ${block.name} with value "${solveStyle(variables[block.name])}"`, block.meta)
 
-				// Get the value node
-				let cont = variables[block.name][0]
-
-				// Match the node with a type for boolean conversion
-				switch (cont.type) {
-					// Pass real booleans directly
-					case "bool":
-						return cont.value
-						break;
-					// Only use the number 1 as truthy, without looking at the unit
-					case "number":
-						return cont.value == 1
-						break;
-					default:
-				}
-
+				// Get the return value of the containing node
+				return getReturnValue(variables[block.name])
+				break;
+			case "number":
+				return block.value == 1
+				break;
+			case "bool":
+				return block.value
 				break;
 			case "comparator":
 				console.log("sd");
@@ -189,19 +181,64 @@ module.exports = function(ast, filename) {
 
 	/**
 	 * Execute a node
-	 * @param  {Object} block  The AST node we're running
-	 * @param  {Object} parent The DOM node above us
+	 * @param  {Object} block     The AST node we're running
+	 * @param  {Object} domParent The DOM node above us
 	 */
-	function run(block, parent) {
+	function run(block, domParent) {
 		/// IF
 		if (block.type == "if") {
-			console.log(block);
+			// Solve the condition inside the if block
 			let condition = getReturnValue(block.condition)
 
-			if (condition) {
-				runThrough(block.children)
+			// Create a meta if block
+			let ifBlock = {
+				"tag": "if",
+				// If one of the if/else blocks in the chain has already been run
+				"claimed": condition,
+				"children": []
 			}
 
+			// Run though the children and add them to the parent element
+			if (condition) {
+				runThrough(block.children, ifBlock)
+			}
+
+			// Add the meta block to the DOM
+			domParent.children.push(ifBlock)
+		}
+
+		/// ELIF & ELSE
+		else if (block.type == "else" || block.type == "elif") {
+			// Make a copy of the child list and reverse it
+			let reversedChildren = domParent.children.slice(0).reverse()
+			// Will contain the found if block
+			let ifBlock = false
+
+			// Loop through the children in revere so we hit the last if first
+			for (let child of reversedChildren) {
+				if (child.tag == "if") {
+					ifBlock = child
+					break;
+				}
+			}
+
+			// Error out if else or elif is found without an if
+			if (ifBlock === false) {
+				passError(`Found an ${block.type} block without an preceding if`, block.meta)
+			}
+
+			// Stop if the block has already been executed
+			if (ifBlock.claimed) return
+
+			// If the block is an elif, check if the condition has been met
+			if (block.type == "elif") {
+				// Skip block if it's false
+				if (!getReturnValue(block.condition)) return
+			}
+
+			// Run though the children and claim the block
+			runThrough(block.children, ifBlock)
+			ifBlock.claimed = true
 		}
 
 		/// ELEMENT
@@ -237,13 +274,13 @@ module.exports = function(ast, filename) {
 			runThrough(block.children, newElement)
 
 			// Add this element to the DOM
-			parent.children.push(newElement)
+			domParent.children.push(newElement)
 		}
 
 		/// PROPERTY
 		else if (block.type == "property") {
 			// Set the style of the parent with the computed style
-			parent.styles[block.name] = solveStyle(block.children)
+			domParent.styles[block.name] = solveStyle(block.children)
 		}
 
 		/// ASSIGNMENT
@@ -253,7 +290,7 @@ module.exports = function(ast, filename) {
 		}
 
 		else {
-			console.log(parent);
+			console.log(domParent);
 			console.log(block);
 		}
 	}
