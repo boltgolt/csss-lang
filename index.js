@@ -124,9 +124,13 @@ module.exports = {
 
 			// Generate an object with the script output and more
 			resolve({
+				// The raw output as a string
 				output: lastResult,
+				// Generated warnings as an array
 				warnings: config.warns,
+				// Array of the time the 5 components took to run in ms
 				timings: timings,
+				// The state of the variables at the end if the run
 				variables: config.variables
 			})
 		})
