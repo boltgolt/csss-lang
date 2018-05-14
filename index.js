@@ -18,7 +18,9 @@ module.exports = {
 		 */
 		function getTime() {
 			// Get the time in nano seconds
-			let hrTime = process.hrtime()
+			let hrTime = 0
+			if (process.hrtime) hrTime = process.hrtime()
+			
 			// Get a rounded microsecond time
 			return Math.round((hrTime[0] * 1000000 + hrTime[1]) / 10000)
 		}

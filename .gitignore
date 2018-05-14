@@ -1,7 +1,5 @@
 node_modules
-config/local.json5
 npm-debug.log
-output
 
 in.csss
 out.html

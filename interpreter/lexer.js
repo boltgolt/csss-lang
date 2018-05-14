@@ -380,7 +380,7 @@ module.exports = function(text, config) {
 				identifier += current
 			}
 
-			lowIndentifier = identifier.toLowerCase()
+			let lowIndentifier = identifier.toLowerCase()
 
 			if (lowIndentifier == "true" || lowIndentifier == "false") {
 				// Pass the boolean as an actual boolean
