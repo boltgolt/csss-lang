@@ -19,7 +19,7 @@ const fs = require("fs")
 // Only allow import of files with this extension
 const validExtensions = ["csss"]
 
-module.exports = function(text, filename, location) {
+module.exports = function(text, config) {
 	/**
 	 * Search for @requires in the code and give them to the parser
 	 * @param  {String} text     A sting with CSSS code
@@ -41,9 +41,11 @@ module.exports = function(text, filename, location) {
 		})
 
 		// If we have too much recursion
-		if (recursionNo == config.get("recursionLimit")) {
+		if (recursionNo >= config.recursionLimit) {
 			// TODO: Show all stack paths
-			throwError("Too much @require recursion.", location)
+			config.crit("RecursionLimit", "Too much @require recursion", {
+				location: location
+			})
 		}
 
 		// Add this file to the stack
@@ -87,7 +89,10 @@ module.exports = function(text, filename, location) {
 
 					// If we have hit the and of the file while searching for the end of the include, stop
 					if (t == text.length) {
-						throwError("Malformed @require (EOF)", location + "/" + filename)
+						config.crit("MalformedRequire", "Malformed @require (EOF)", {
+							location: location,
+							filename: filename
+						})
 					}
 
 					// Give the parser the string in the requie and a clone of the stack
@@ -143,7 +148,10 @@ module.exports = function(text, filename, location) {
 
 				// Throw an error if we hit the end of the string without finding the closing tag
 				if (index - 1 == string.length && string[index] !== closing) {
-					throwError("Malformed @require (never ending string)", location + "/" + filename)
+					config.crit("MalformedRequire", "Malformed @require (never ending string)", {
+						location: location,
+						filename: filename
+					})
 				}
 
 				if (foundFile.indexOf(".") != -1) {
@@ -151,7 +159,10 @@ module.exports = function(text, filename, location) {
 					extension = extension[extension.length - 1]
 
 					if (validExtensions.indexOf(extension) == -1) {
-						print(`Including required file with non-csss extention (.${extension})`, print.WARN)
+						config.warn(`Including required file with non-csss extention (.${extension})`, {
+							location: location,
+							filename: filename
+						})
 					}
 				}
 
@@ -169,7 +180,10 @@ module.exports = function(text, filename, location) {
 			fileContents = fs.readFileSync(fullPath)
 		} catch (err) {
 			// TODO: Permission erros
-			throwError("Required file does not exist on disk", fullPath)
+			config.crit("MalformedRequire", "Required file does not exist on disk", {
+				location: location,
+				filename: foundFile
+			})
 		}
 
 		// Strip the full path of the filename so only the location remains
@@ -181,5 +195,5 @@ module.exports = function(text, filename, location) {
 	}
 
 	// Call the search function on the root file, stack is empty for root
-	return searchRequire(text, location, filename, [])
+	return searchRequire(text, config.location, config.filename, [])
 }
