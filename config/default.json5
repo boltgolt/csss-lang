@@ -1,8 +1,0 @@
-{
-	// The maximum amount @require can include itself
-	recursionLimit: 5,
-	// Enables better error reporting
-	debug: true,
-	// Scale from 0 to 3, where 0 will only show errors and 3 will show absolutely everything
-	logLevel: 2
-}

@@ -3,29 +3,40 @@
  * Runs through the syntax tree and executes every node so only the rendered elements and their properties remain
  */
 
-module.exports = function(ast, filename) {
+module.exports = function(ast, config) {
 	// Contains all variables and their values
 	let variables = {}
-	// The generated output elements
+
+	// Go through the preset variable and insert them
+	for (let variable in config.variables) {
+		switch (typeof config.variables[variable]) {
+			// Add the -- prefix to the name and insert the string
+			case "string":
+				variables["--" + variable] = [{
+					type: "string",
+					value: config.variables[variable]
+				}]
+				break;
+			// If it's an number, add it as a plain mumber
+			case "number":
+				variables["--" + variable] = [{
+					type: "number",
+					unit: "plain",
+					value: config.variables[variable]
+				}]
+				break;
+			// Abort if we have an incompatible type
+			default:
+				config.crit("ConfigVariableType", `Can't preset variable "${variable}" with type ${typeof variable}`)
+		}
+	}
+
+	// The master elelement
 	let dom = {
 		"tag": "body",
 		"styles": {},
 		"attributes": {},
 		"children": []
-	}
-
-	/**
-	 * Pass an error to the top level in a nice fashion
-	 * @param  {String} msg     Message describing what went wrong
-	 * @param  {Object} metaObj Meta object to get debug data from when enabled
-	 */
-	function passError(msg, metaObj) {
-		if (config.debug && metaObj) {
-			throwError(msg, metaObj.path, metaObj.line, metaObj.column)
-		}
-		else {
-			throwError(msg)
-		}
 	}
 
 	// Let node actually execute the math part
@@ -111,14 +122,14 @@ module.exports = function(ast, filename) {
 						childString = solveStyle(variables[child.name])
 					}
 					else {
-						passError(`Unset variable ${child.name}`)
+						config.crit("VariableMismatch", `Unset variable ${child.name} called`, child.meta)
 					}
 					break;
 
 				// Should never be encountered
 				case "bool":
 					childString = child.value ? "1" : "0"
-					print("Boolean to integer conversion in property", print.WARN)
+					config.warn(`Boolean to integer conversion in property`, child.meta)
 					break;
 
 				default:
@@ -147,9 +158,9 @@ module.exports = function(ast, filename) {
 			// We have a bare variable
 			case "variable":
 				// Check if the variable has been set
-				if (typeof variables[block.name] != "object") 	passError(`Unset variable ${block.name}`, block.meta)
+				if (typeof variables[block.name] != "object") 	config.crit("VariableMismatch", `Unset variable ${block.name}`, block.meta)
 				// Check if the variable is usable (it can only contain 1 value)
-				if (variables[block.name].length != 1)			passError(`Unresolvable variable ${block.name} with value "${solveStyle(variables[block.name])}"`, block.meta)
+				if (variables[block.name].length != 1)			config.crit("VariableMismatch", `Unresolvable variable ${block.name} with value "${solveStyle(variables[block.name])}"`, block.meta)
 
 				// Get the return value of the containing node
 				return getReturnValue(variables[block.name])
@@ -224,7 +235,7 @@ module.exports = function(ast, filename) {
 
 			// Error out if else or elif is found without an if
 			if (ifBlock === false) {
-				passError(`Found an ${block.type} block without an preceding if`, block.meta)
+				config.crit("IfOrphan", `Found an ${block.type} block without an preceding if`, block.meta)
 			}
 
 			// Stop if the block has already been executed
@@ -297,6 +308,9 @@ module.exports = function(ast, filename) {
 
 	// Start working through the tree
 	runThrough(ast.children, dom)
+
+	// Save the resulting variables
+	config.variables = variables
 
 	// Return the DOM
 	return dom

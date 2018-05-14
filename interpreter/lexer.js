@@ -60,7 +60,7 @@ const validUnits = require("../data/units.js")
 const validTags = require("../data/tags.js")
 
 // The function call by the main server file
-module.exports = function(text, filename) {
+module.exports = function(text, config) {
 	/**
 	 * Add a token to the token array
 	 * @param  {String} type  The token type
@@ -204,7 +204,10 @@ module.exports = function(text, filename) {
 				}
 				// If it's neither, we have an invalid tag
 				else {
-					print(`Lexer error: Invalid CSSS comment tag found.`, print.ERROR)
+					config.crit("InvalidCharacter", `Invalid CSSS comment tag found`, {
+						path: currentFile.path,
+						line: currentFile.line
+					})
 				}
 			}
 			// Otherwise, it's a comment
@@ -407,7 +410,10 @@ module.exports = function(text, filename) {
 
 		// If it matches nothing else, and isn't a whitespace character, throw an error
 		else if (current.charCodeAt(0) != 9 && current.charCodeAt(0) != 10 && current.charCodeAt(0) != 32) {
-			print(`Lexer error: Invalid character "${current}" in ${filename} at line ${currentFile.line}`, print.ERROR)
+			config.crit("InvalidCharacter", `Invalid character "${current}"`, {
+				path: currentFile.path,
+				line: currentFile.line
+			})
 		}
 	}
 

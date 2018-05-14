@@ -14,7 +14,7 @@ const FLOW_BLOCK = true
 // Constant used to flag the closing function as non-blocking
 const FLOW_CONTINUE = "continue"
 
-module.exports = function(tokens) {
+module.exports = function(tokens, config) {
 	// Variable containing the entire program
 	let ast = {
 		type: "program",
@@ -26,20 +26,6 @@ module.exports = function(tokens) {
 
 	// Add an End Of File token
 	tokens.push({type: "eof"})
-
-	/**
-	 * Pass an error to the top level in a nice fashion
-	 * @param  {String} msg   Message describing what went wrong
-	 * @param  {Object} token Token object to get debug data from when enabled
-	 */
-	function passError(msg, token) {
-		if (config.debug) {
-			throwError(msg, token.meta.path, token.meta.line, token.meta.column)
-		}
-		else {
-			throwError(msg)
-		}
-	}
 
 	/**
 	 * Add metadata to a new token if needed
@@ -156,7 +142,7 @@ module.exports = function(tokens) {
 			if (peek(function(token) {
 					return token.type != "lpar"
 				})) {
-				passError(`Missing opening "(" after ${token.value} statement`, token)
+				config.crit("MissingToken", `Missing opening "(" after ${token.value} statement`, token.meta)
 			}
 			next()
 
@@ -167,7 +153,7 @@ module.exports = function(tokens) {
 
 			// Check that the next node is a {
 			if (token.type != "lcurb") {
-				passError(`Missing opening "{" after ${newBlock.value} statement`, token)
+				config.crit("MissingToken", `Missing opening "{" after ${newBlock.type} statement`, newBlock.meta)
 			}
 
 			// Now walk through the whole block until we hit our closing bracket
@@ -194,7 +180,7 @@ module.exports = function(tokens) {
 			if (peek(function(token) {
 					return token.type != "lcurb"
 				})) {
-				passError(`Missing opening "{" after else statement`, token)
+				config.crit("MissingToken", `Missing opening "{" after else statement`, token.meta)
 			}
 			next()
 
@@ -280,7 +266,7 @@ module.exports = function(tokens) {
 		else if (token.type == "logic") {
 			// Check if we've had some tokens already, we cant compair things if we didn't
 			if (parent.length == 0) {
-				passError(`Empty left hand for logical operator "${token.value}"`, token)
+				config.crit("OperatorSyntax", `Empty left hand for logical operator "${token.value}"`, token.meta)
 			}
 
 			// Create a new block with all previous tokens to the left
@@ -302,7 +288,7 @@ module.exports = function(tokens) {
 
 			// If the right is empty, we can't compare the 2
 			if (newBlock.right == 0) {
-				passError(`Empty right hand for logical operator "${newBlock.value}"`, token)
+				config.crit("OperatorSyntax", `Empty right hand for logical operator "${newBlock.value}"`, token.meta)
 			}
 
 			// Set ourselfs as the only child
@@ -316,7 +302,7 @@ module.exports = function(tokens) {
 		else if (token.type == "comparator") {
 			// Check if we've had some tokens already, we cant compair things if we didn't
 			if (parent.length == 0) {
-				passError(`Empty left hand for comparator "${token.value}"`, token)
+				config.crit("OperatorSyntax", `Empty left hand for comparator "${token.value}"`, token.meta)
 			}
 
 			// Create a new block with all previous tokens to the left
@@ -338,7 +324,7 @@ module.exports = function(tokens) {
 
 			// If the right is empty, we can't compare the 2
 			if (newBlock.right == 0) {
-				passError(`Empty right hand for comparator "${newBlock.value}"`, token)
+				config.crit("OperatorSyntax", `Empty right hand for comparator "${newBlock.value}"`, token.meta)
 			}
 
 			// Set ourselfs as the only child
@@ -374,7 +360,7 @@ module.exports = function(tokens) {
 
 				// If we have nothing, the array index was empty
 				if (index.length == 0) {
-					passError(`Empty array index found`, token)
+					config.crit("InvalidArrayIndex", `Empty array index found`, token.meta)
 				}
 				// If we have one block, we have a valid index
 				else if (index.length == 1) {
@@ -382,7 +368,7 @@ module.exports = function(tokens) {
 				}
 				// If we have more than 1 block, we have an invalid index
 				else {
-					passError(`Invalid array index`, token)
+					config.crit("InvalidArrayIndex", `Invalid array index`, token.meta)
 				}
 			}
 
@@ -447,7 +433,7 @@ module.exports = function(tokens) {
 			if (peek(function(token) {
 					return token.type != "lpar"
 				})) {
-				passError(`Missing opening "(" after calc statement`, token)
+				config.crit("MissingToken", `Missing opening "(" after calc statement`, token.meta)
 			}
 			next()
 
@@ -531,7 +517,7 @@ module.exports = function(tokens) {
 						if (peek(function(token) {
 								return token.type != "assign"
 							})) {
-							passError(`Malformed attribute selector in element selector`, token)
+							config.crit("MalformedSelector", `Malformed attribute selector in element selector`, token.meta)
 						}
 
 						// Skip the assign
@@ -559,7 +545,7 @@ module.exports = function(tokens) {
 
 					// If it's neither of those, throw an error
 					default:
-						passError(`Unexpected ${nextToken.type} in element selector`, token)
+						config.crit("MalformedSelector", `Unexpected ${nextToken.type} in element selector`, token.meta)
 				}
 			}
 
@@ -629,7 +615,7 @@ module.exports = function(tokens) {
 
 			// Test if the string only contains hexadecimal characters
 			if (!/^[0-9A-Fa-f]*$/.test(token.value)) {
-				passError(`HEX color contains non-hex characters`, token)
+				config.crit("InvalidColor", `HEX color contains non-hex characters`, token.meta)
 			}
 
 			// Create an array to contain the color codes and a value shorthand
@@ -646,7 +632,7 @@ module.exports = function(tokens) {
 			}
 			// Otherwise, we have an invalid length
 			else {
-				passError(`Invalid HEX color length`, token)
+				config.crit("InvalidColor", `Invalid HEX color length`, token.meta)
 			}
 
 			// Add the new color as RGB by parsing the hexes as decimals
@@ -671,7 +657,7 @@ module.exports = function(tokens) {
 			if (peek(function(token) {
 					return token.type != "lpar"
 				})) {
-				passError(`Missing opening parenthesis after color declaration`, token)
+				config.crit("MissingToken", `Missing opening parenthesis after color declaration`, token.meta)
 			}
 
 			// Skip the parenthesis
@@ -767,7 +753,7 @@ module.exports = function(tokens) {
 
 		// We don't know what to do with this
 		else {
-			passError(`Unexpected ${token.type} ("${token.value}") encountered`, token)
+			config.crit("UnexpectedToken", `Unexpected ${token.type} ("${token.value}") encountered`, token.meta)
 		}
 	}
 
